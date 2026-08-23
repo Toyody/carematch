@@ -2,116 +2,213 @@
 
 ## 1. Product Overview
 
-CareMatch is a healthcare workforce and recruitment management platform.
+CareMatch is a multi-tenant healthcare workforce and recruitment management platform. Healthcare organisations and recruitment agencies use separate tenant workspaces to manage candidates, vacancies and recruitment workflows.
 
-It allows healthcare organisations and recruitment agencies to manage
-candidates, vacancies and recruitment workflows in one system.
+Candidate and recruitment data belongs to one organisation. A global user may belong to multiple organisations, but access in one organisation never grants access to another.
 
-## 2. Target Users
+## 2. Target Users and MVP Permissions
 
-### Organisation Admin
-Can:
-- manage organisation settings
-- manage users and memberships
-- manage roles
+MVP roles are fixed and assigned per organisation membership.
 
-### Recruiter
-Can:
-- manage candidates
-- create jobs
-- manage applications
-- move applicants through recruitment stages
+| Capability | Admin | Recruiter | Hiring Manager |
+| --- | --- | --- | --- |
+| View organisation | Yes | Yes | Yes |
+| Edit organisation settings | Yes | No | No |
+| Invite/remove members | Yes | No | No |
+| Assign fixed roles | Yes | No | No |
+| View candidates, jobs and applications | Yes | Yes | Yes |
+| Create/edit candidates | Yes | Yes | No |
+| Create/edit/open/close jobs | Yes | Yes | No |
+| Create applications | Yes | Yes | No |
+| Move applications through recruiter-owned stages | Yes | Yes | Limited |
+| Move an Interview application to Offer or Rejected | Yes | Yes | Yes |
+| Upload/delete candidate documents | Yes | Yes | No |
 
-### Hiring Manager
-Can:
-- review candidates
-- review applications
-- participate in hiring decisions
+Hiring Manager participation in the MVP consists of reviewing tenant records and deciding whether an application at Interview moves to Offer or Rejected. Comments and collaborative review threads are not part of the MVP.
 
-## 3. MVP Scope
+An Admin cannot remove or demote the organisation's final Admin.
 
-The MVP must support:
+## 3. Authentication and Organisation Access
+
+The first-party web application uses Laravel Sanctum stateful cookie authentication.
+
+The MVP supports:
+
+- login and logout
+- password reset
+- authentication rate limiting
+- organisation creation
+- automatic Admin membership for the organisation creator
+- time-limited organisation invitations
+- organisation selection for users with multiple memberships
+- membership deactivation that preserves historical actor attribution
+
+Email verification policy and invitation delivery must be resolved before invitations are implemented.
+
+All tenant-owned API operations identify an organisation in the URL. The backend verifies the authenticated user's membership and never trusts a client-provided `organisation_id` to assign ownership.
+
+## 4. MVP Scope
+
+### Core recruitment MVP
 
 - Authentication
 - Organisation management
-- Organisation memberships
-- Role-based access control
-- Candidate management
-- Job management
-- Application management
-- Recruitment pipeline
-- Dashboard
-- Search
-- Filtering
-- Pagination
-- Candidate document upload
+- Organisation memberships and invitations
+- Fixed role-based access control
+- Strict tenant isolation
+- Candidate creation, view and editing
+- Job creation, view, editing and lifecycle
+- Application creation and view
+- Recruitment status workflow and history
+- Search, filtering and pagination for core lists
 
-## 4. Core User Flow
+### Portfolio-ready v1.0 completion
 
-A recruiter should be able to:
+- Recruitment pipeline UI
+- Candidate document upload and authorised download
+- Minimal dashboard
+- Complete loading, validation, error and empty states
+- Automated backend and frontend tests
+- Critical Playwright flow
+- Static analysis and CI
+- Demo data and account
+- Production documentation and diagrams
+- HTTPS deployment
 
-1. Log in
-2. Access their organisation
-3. Create a job
-4. Create or view candidates
-5. Create an application
-6. Review the application
-7. Move the applicant through the recruitment pipeline
+## 5. Core User Flow
 
-## 5. Recruitment Pipeline
+A Recruiter can:
 
-Application statuses:
+1. Log in.
+2. Select an organisation for which they have an active membership.
+3. Create and open a job.
+4. Create or review a candidate.
+5. Create an application linking that candidate to the open job.
+6. Review the application.
+7. Move the application through valid recruitment stages.
 
-- Applied
-- Screening
-- Interview
-- Offer
-- Hired
-- Rejected
+Every step is authorised and scoped to the active organisation on the server.
 
-Define valid transitions and business rules.
+## 6. Job Lifecycle
 
-## 6. Candidate Information
+Job statuses are `draft`, `open`, `closed` and `archived`.
 
-Candidates may contain:
+MVP transitions:
 
-- name
+- Draft to Open
+- Open to Closed
+- Closed to Open
+- Draft, Open or Closed to Archived
+
+Archived is terminal in the MVP. Applications can be created only for an Open job. Jobs with applications are closed or archived, not physically deleted.
+
+## 7. Recruitment Pipeline
+
+Application statuses are `applied`, `screening`, `interview`, `offer`, `hired` and `rejected`.
+
+Valid forward transitions:
+
+- Applied to Screening
+- Screening to Interview
+- Interview to Offer
+- Offer to Hired
+- Applied, Screening, Interview or Offer to Rejected
+
+Hired and Rejected are terminal in the MVP. Terminal-state correction or reopening is not supported until an explicit correction workflow is designed.
+
+Each status change records the previous status, new status, actor, timestamp and optional note. Status changes are atomic and protected from concurrent overwrite.
+
+## 8. Candidate Information
+
+Initial candidate records support:
+
+- first and last name
 - occupation
 - email
 - phone
 - location
-- skills
 - availability
-- employment history
 - notes
-- uploaded documents
 
-## 7. Job Information
+Uploaded documents are included in portfolio-ready v1.0 but are private and available only through authorised endpoints.
 
-Jobs may contain:
+Structured skills and employment history are excluded from the first Candidate vertical slice. Their inclusion later in v1.0 remains an open scope decision.
+
+## 9. Job Information
+
+Initial jobs support:
 
 - title
 - occupation
 - location
 - employment type
-- salary or hourly rate
 - description
-- required skills
 - status
 - opening date
 - closing date
 
-## 8. Non-MVP Features
+Salary/hourly rate and structured required skills remain open product and data-modelling decisions and are excluded from the first Job vertical slice.
 
-The following are planned after the core MVP:
+## 10. Search, Filtering and Pagination
 
+Each list endpoint documents an allow-list of filters and sorts. Unknown filters are rejected rather than interpreted dynamically.
+
+Initial behaviour:
+
+- Candidates: search by name and email; filter by occupation; sort by name or creation date.
+- Jobs: search by title; filter by status, occupation and employment type; sort by opening or creation date.
+- Applications: filter by job, candidate and status; sort by applied or updated date.
+- Pagination has a server-enforced maximum page size.
+
+Fuzzy search, full-text ranking, PostGIS and advanced matching are not MVP requirements.
+
+## 11. Candidate Documents and Sensitive Data
+
+Candidate documents:
+
+- are stored outside the public web root
+- use random internal storage keys
+- preserve the original filename only as metadata
+- are validated by allow-listed type and maximum size
+- require tenant membership and resource authorisation for upload, download and deletion
+- are downloaded as attachments unless a specifically safe preview is implemented
+
+Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in application logs.
+
+The malware-scanning approach, retention periods and applicable privacy jurisdiction must be decided before production use.
+
+## 12. Minimal Dashboard
+
+The MVP dashboard is intentionally small and may show:
+
+- open job count
+- active candidate count
+- application counts grouped by current pipeline status
+- recent application activity
+
+Advanced analytics and cross-tenant reporting are excluded.
+
+## 13. Non-MVP Features
+
+- Custom roles and permission builders
 - Compliance management
+- Qualifications and certifications
 - Candidate matching
 - PostGIS distance matching
 - Qualification expiry notifications
-- SQS background processing
-- Redis
-- AI CV parsing
-- AI-generated match explanations
-- Advanced analytics
-- Observability
+- Redis and SQS processing
+- AI CV parsing and match explanations
+- Advanced analytics and observability
+- Microservices and distributed architecture
+
+## 14. Open Product Decisions
+
+These decisions do not block the local foundation but must be resolved before the affected feature:
+
+1. Whether candidate email is unique within an organisation and how duplicate candidates are merged.
+2. Whether structured skills and employment history belong in v1.0.
+3. The salary/rate model, including currency, range and pay period.
+4. Whether email verification is mandatory and how invitation emails are delivered locally and in production.
+5. The malware-scanning mechanism and behaviour for files awaiting a scan.
+6. Candidate and document retention periods and the governing privacy jurisdiction.
+7. Whether an Admin-only correction flow for terminal application statuses is required after MVP.
