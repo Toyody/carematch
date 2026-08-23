@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# PHP
+/vendor/
+
+# Node
+/node_modules/
+.next/
+
+# IDE
+.idea/
+
+# Logs
+*.log
+
+# Local scratch files
+.codex-local/
