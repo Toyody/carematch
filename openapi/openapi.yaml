@@ -1,0 +1,47 @@
+openapi: 3.1.0
+info:
+  title: CareMatch API
+  version: 0.1.0
+  description: REST API for the CareMatch healthcare recruitment platform.
+  license:
+    name: All rights reserved
+servers:
+  - url: /api/v1
+    description: Version 1 API
+paths:
+  /health:
+    get:
+      security: []
+      operationId: getHealth
+      summary: Check API availability
+      tags:
+        - System
+      responses:
+        "200":
+          description: The API is available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - status
+            - service
+          properties:
+            status:
+              type: string
+              const: ok
+            service:
+              type: string
+              const: carematch-api
+tags:
+  - name: System
+    description: Operational endpoints for the CareMatch API.

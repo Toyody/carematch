@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-bookworm
+        env:
+          POSTGRES_DB: carematch_test
+          POSTGRES_USER: carematch
+          POSTGRES_PASSWORD: carematch_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U carematch -d carematch_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: carematch_test
+      DB_USERNAME: carematch
+      DB_PASSWORD: carematch_local
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: mbstring, pdo_pgsql, zip
+          coverage: none
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Check PHP formatting
+        run: composer lint
+
+      - name: Run PHP static analysis
+        run: composer analyse
+
+      - name: Verify migrations
+        run: php artisan migrate --force
+
+      - name: Run backend tests
+        run: composer test
+
+      - name: Audit Composer dependencies
+        run: composer audit
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Check frontend formatting
+        run: npm run format:check
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Type-check frontend
+        run: npm run typecheck
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+
+  containers:
+    name: Containers and contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare local environment files
+        run: |
+          cp .env.example .env
+          cp backend/.env.example backend/.env
+          cp frontend/.env.example frontend/.env.local
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build development images
+        run: docker compose build
+
+      - name: Start development environment
+        run: docker compose up -d --wait
+
+      - name: Verify backend and frontend startup
+        run: |
+          curl --fail --silent http://localhost:8000/api/v1/health
+          curl --fail --silent http://localhost:3000
+
+      - name: Lint OpenAPI contract
+        run: >-
+          docker run --rm
+          -v "${{ github.workspace }}/openapi:/spec"
+          redocly/cli:2.47.0
+          lint --config /spec/redocly.yaml /spec/openapi.yaml
+
+      - name: Stop development environment
+        if: always()
+        run: docker compose down -v
