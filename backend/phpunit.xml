@@ -32,7 +32,13 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="FRONTEND_URL" value="http://localhost:3000"/>
+        <env name="SANCTUM_STATEFUL_DOMAINS" value="localhost:3000"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="SESSION_COOKIE" value="carematch_session"/>
+        <env name="SESSION_HTTP_ONLY" value="true"/>
+        <env name="SESSION_SAME_SITE" value="lax"/>
+        <env name="SESSION_SECURE_COOKIE" value="false"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

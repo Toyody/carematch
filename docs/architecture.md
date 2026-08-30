@@ -43,7 +43,7 @@ Compliance, matching, asynchronous messaging and AI are future concerns and must
 
 ### Identity
 
-Owns global users, credentials, password lifecycle, authentication and sessions. It does not own organisation roles.
+Owns global users, credentials, password lifecycle, authentication and sessions. A global user may exist without any Organisation membership. Identity does not create Organisations or memberships and does not own organisation roles.
 
 ### Organisation
 
@@ -122,9 +122,19 @@ Tenant-owned audit fields that identify an actor use composite membership foreig
 
 ## 7. Authentication and RBAC
 
-The first-party browser application uses Laravel Sanctum stateful cookie authentication. CSRF, CORS and secure cookie configuration must match the final frontend/backend domain topology. Token authentication is deferred until an external API consumer requires it.
+The first-party Next.js SPA uses Laravel Sanctum stateful cookie authentication backed by database sessions. Public registration is part of Phase 2-A and signs the newly created user in automatically. Registration does not create an Organisation or membership.
+
+Laravel's stateful API middleware handles the SPA session and CSRF flow, and protected API routes use the standard `auth:sanctum` middleware. CSRF, CORS and secure cookie configuration must match the frontend/backend domain topology. A successful password reset invalidates all existing sessions belonging to that user.
+
+Sanctum's standard `personal_access_tokens` infrastructure remains installed. Phase 2-A does not add `HasApiTokens` to the User model and exposes no token issuing or token-management functionality. API-token authentication remains deferred until an external API consumer creates a documented requirement.
+
+Identity centralises email normalisation so registration, login and password reset use the same canonical email representation. Password validation is deliberately simple: at least 12 characters, confirmation and a maximum of 72 bytes for the configured bcrypt hasher. Composition rules are not added mechanically.
+
+Email verification is deferred. Users may register and authenticate without a verified email during Phase 2-A.
 
 MVP roles are `admin`, `recruiter` and `hiring_manager`, stored on organisation memberships. Laravel Policies implement the permission matrix in `product-requirements.md`. Frontend checks never replace server-side authorisation.
+
+Organisation creation, memberships, RBAC, tenant resolution and tenant-isolation enforcement are outside Phase 2-A and begin only in the subsequent Organisation slice.
 
 ## 8. Transaction Boundaries
 
@@ -132,6 +142,7 @@ The Application layer defines atomic use cases; Infrastructure supplies the Lara
 
 The following operations are single database transactions:
 
+- reset a password, rotate the remember token and invalidate the user's existing sessions
 - create an organisation and its initial Admin membership
 - accept an invitation and create or activate its membership
 - create an application and its initial status-history entry

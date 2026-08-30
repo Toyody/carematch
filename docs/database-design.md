@@ -29,6 +29,45 @@ Fields:
 
 Email is normalised to lowercase before persistence and is globally unique. Passwords use Laravel's current hashing facilities and are never returned by the API.
 
+Email normalisation is implemented by one central Identity component and reused by registration, login and password-reset workflows. A PostgreSQL constraint that requires the stored value to equal its trimmed, lowercase representation provides defence in depth against writes that bypass the application path.
+
+Phase 2-A password validation requires at least 12 characters, confirmation and a maximum of 72 bytes for the configured bcrypt hasher. It does not require arbitrary character-composition rules.
+
+A user may exist without any row in `organisation_memberships`. Public registration creates only the global user and a database-backed authenticated session; it does not create an Organisation or membership.
+
+### `password_reset_tokens`
+
+Laravel Password Broker storage for password-reset tokens.
+
+Fields:
+
+- `email`, primary key
+- `token`
+- `created_at`, nullable
+
+Reset tokens are stored using Laravel's standard hashed representation. A successful reset updates the password, rotates the remember token and invalidates every existing session for that user. Email verification remains deferred and is not a prerequisite for requesting or completing a password reset in Phase 2-A.
+
+### `sessions`
+
+Database-backed Laravel sessions used by the first-party Next.js SPA.
+
+Fields:
+
+- `id`, primary key
+- `user_id`, nullable and indexed
+- `ip_address`, nullable
+- `user_agent`, nullable
+- `payload`
+- `last_activity`, indexed
+
+Anonymous pre-authentication sessions may have no `user_id`. Authenticated sessions reference the global user so they can be invalidated after a successful password reset. Session identifiers and payloads are never exposed through the API.
+
+### `personal_access_tokens`
+
+The standard Laravel Sanctum infrastructure remains installed because Sanctum is the selected SPA authentication package.
+
+Phase 2-A does not add `HasApiTokens` to the User model and does not expose token issuing, listing, revocation or management functionality. The table does not change the product authentication model: the first-party SPA uses stateful cookies and database sessions only. API-token functionality requires a later documented external-consumer requirement.
+
 ### `organisations`
 
 Tenant records.
@@ -240,6 +279,9 @@ Exact retention periods and jurisdiction-specific privacy obligations must be de
 Expected indexes:
 
 - unique `users(email)`
+- `sessions(user_id)`
+- `sessions(last_activity)`
+- unique `personal_access_tokens(token)` from Sanctum's standard migration
 - unique `organisation_memberships(organisation_id, user_id)`
 - `organisation_memberships(user_id, organisation_id)`
 - `organisation_invitations(organisation_id, email)`
