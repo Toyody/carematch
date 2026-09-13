@@ -6,3 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class)->name('api.v1.health');
 });
+
+Route::prefix('v1')->group(
+    base_path('app/Modules/Identity/Interfaces/Http/routes.php'),
+);

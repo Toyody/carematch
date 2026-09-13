@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Identity;
 
-use App\Modules\Identity\Interfaces\Validation\Rules\MaximumPasswordBytes;
+use App\Modules\Identity\Interfaces\Validation\Rules\BcryptCompatiblePassword;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Tests\TestCase;
@@ -35,6 +35,11 @@ final class PasswordPolicyTest extends TestCase
         self::assertFalse($this->validateMaximumBytes($seventyFiveBytes));
     }
 
+    public function test_the_shared_policy_rejects_a_nul_byte(): void
+    {
+        self::assertFalse($this->validateWithDefaults(str_repeat('a', 12)."\0"));
+    }
+
     private function validateWithDefaults(string $password): bool
     {
         return Validator::make(
@@ -47,7 +52,7 @@ final class PasswordPolicyTest extends TestCase
     {
         return Validator::make(
             ['password' => $password],
-            ['password' => [new MaximumPasswordBytes]],
+            ['password' => [new BcryptCompatiblePassword]],
         )->passes();
     }
 }

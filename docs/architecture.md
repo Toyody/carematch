@@ -128,7 +128,7 @@ Laravel's stateful API middleware handles the SPA session and CSRF flow, and pro
 
 Sanctum's standard `personal_access_tokens` infrastructure remains installed. Phase 2-A does not add `HasApiTokens` to the User model and exposes no token issuing or token-management functionality. API-token authentication remains deferred until an external API consumer creates a documented requirement.
 
-Identity centralises email normalisation so registration, login and password reset use the same canonical email representation. Password validation is deliberately simple: at least 12 characters, confirmation and a maximum of 72 bytes for the configured bcrypt hasher. Composition rules are not added mechanically.
+Identity centralises email normalisation so registration, login and password reset use the same canonical email representation. Password validation is deliberately simple: at least 12 characters, confirmation, no NUL bytes and a maximum of 72 bytes for the configured bcrypt hasher. Composition rules are not added mechanically.
 
 Email verification is deferred. Users may register and authenticate without a verified email during Phase 2-A.
 
@@ -148,6 +148,8 @@ The following operations are single database transactions:
 - create an application and its initial status-history entry
 - change an application status and append its status-history entry
 - any future operation that records multiple writes as one business decision
+
+Phase 2-A continues to use Laravel Password Broker's standard reset sequence: token validation occurs before the reset callback, and token deletion occurs after the callback completes. The User row lock serialises password, remember-token and session mutations for that user, but it does not atomically consume the reset token. Two concurrent requests that both validate before either deletes the token can therefore enter the reset callback. Strict atomic single-use under concurrent requests is an accepted Laravel framework and MVP trade-off; sequential reuse after a successful reset is rejected.
 
 Application status changes use a row lock or explicit version check so concurrent changes cannot silently overwrite each other.
 

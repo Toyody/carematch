@@ -5,8 +5,10 @@ namespace Tests\Feature\Identity;
 use App\Modules\Identity\Infrastructure\Persistence\User;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\EloquentUserProvider;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -54,5 +56,19 @@ final class UserPersistenceTest extends TestCase
 
         self::assertSame($passwordHash, $user->password);
         self::assertTrue(Hash::check('already-hashed-password', $user->password));
+    }
+
+    public function test_postgresql_rejects_an_email_that_bypasses_application_normalisation(): void
+    {
+        $this->expectException(QueryException::class);
+        $this->expectExceptionMessage('users_email_normalised_check');
+
+        DB::transaction(static fn (): bool => DB::table('users')->insert([
+            'name' => 'Constraint Test User',
+            'email' => ' NOT-NORMALISED@EXAMPLE.TEST ',
+            'password' => Hash::make(UserFactory::DEFAULT_PASSWORD),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]));
     }
 }

@@ -49,7 +49,7 @@ The MVP supports:
 
 Protected SPA API routes use Laravel's standard `auth:sanctum` middleware. Sanctum's `personal_access_tokens` infrastructure remains installed, but CareMatch does not issue, list, revoke or otherwise manage API tokens in Phase 2-A. Browser authentication remains cookie-session only from the product's perspective.
 
-Email addresses are normalised through one central Identity component before authentication or persistence. Passwords require at least 12 characters, must be confirmed and must not exceed 72 bytes so they remain within the safe input limit of the configured bcrypt hasher. Arbitrary composition rules are not required unless Laravel's supported defaults later justify them. A successful password reset changes the password and invalidates the user's existing sessions.
+Email addresses are normalised through one central Identity component before authentication or persistence. Passwords require at least 12 characters, must be confirmed, must not contain a NUL byte and must not exceed 72 bytes so they remain compatible with the configured bcrypt hasher. Arbitrary composition rules are not required unless Laravel's supported defaults later justify them. A successful password reset changes the password and invalidates the user's existing sessions.
 
 Email verification policy and invitation delivery must be resolved before invitations are implemented.
 
@@ -181,7 +181,7 @@ Candidate documents:
 - require tenant membership and resource authorisation for upload, download and deletion
 - are downloaded as attachments unless a specifically safe preview is implemented
 
-Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in application logs.
+Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in production application logs. Local development uses `MAIL_MAILER=log` as an email-delivery substitute, so a password-reset URL and its token necessarily appear in the local development mail log. That local-only mechanism must not be used as the production mail-delivery strategy.
 
 The malware-scanning approach, retention periods and applicable privacy jurisdiction must be decided before production use.
 

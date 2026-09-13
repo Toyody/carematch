@@ -31,7 +31,7 @@ Email is normalised to lowercase before persistence and is globally unique. Pass
 
 Email normalisation is implemented by one central Identity component and reused by registration, login and password-reset workflows. A PostgreSQL constraint that requires the stored value to equal its trimmed, lowercase representation provides defence in depth against writes that bypass the application path.
 
-Phase 2-A password validation requires at least 12 characters, confirmation and a maximum of 72 bytes for the configured bcrypt hasher. It does not require arbitrary character-composition rules.
+Phase 2-A password validation requires at least 12 characters, confirmation, no NUL bytes and a maximum of 72 bytes for the configured bcrypt hasher. It does not require arbitrary character-composition rules.
 
 A user may exist without any row in `organisation_memberships`. Public registration creates only the global user and a database-backed authenticated session; it does not create an Organisation or membership.
 
