@@ -68,4 +68,4 @@ audit:
 openapi-lint:
 	docker run --rm -v "$(CURDIR)/openapi:/spec" redocly/cli:2.47.0 lint --config /spec/redocly.yaml /spec/openapi.yaml
 
-check: lint analyse test build openapi-lint
+check: lint analyse test build audit openapi-lint
