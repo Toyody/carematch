@@ -30,11 +30,15 @@ An Admin cannot remove or demote the organisation's final Admin.
 
 ## 3. Authentication and Organisation Access
 
-The first-party web application uses Laravel Sanctum stateful cookie authentication.
+The first-party Next.js SPA uses Laravel Sanctum stateful cookie authentication. Public user registration is included in Phase 2-A. A successful registration creates a global user, starts a database-backed session and signs that user in automatically.
+
+A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Organisation creation, memberships, role-based access control and tenant isolation are implemented after Phase 2-A.
 
 The MVP supports:
 
+- public user registration with automatic sign-in
 - login and logout
+- retrieval of the currently authenticated user
 - password reset
 - authentication rate limiting
 - organisation creation
@@ -42,6 +46,10 @@ The MVP supports:
 - time-limited organisation invitations
 - organisation selection for users with multiple memberships
 - membership deactivation that preserves historical actor attribution
+
+Protected SPA API routes use Laravel's standard `auth:sanctum` middleware. Sanctum's `personal_access_tokens` infrastructure remains installed, but CareMatch does not issue, list, revoke or otherwise manage API tokens in Phase 2-A. Browser authentication remains cookie-session only from the product's perspective.
+
+Email addresses are normalised through one central Identity component before authentication or persistence. Passwords require at least 12 characters, must be confirmed, must not contain a NUL byte and must not exceed 72 bytes so they remain compatible with the configured bcrypt hasher. Arbitrary composition rules are not required unless Laravel's supported defaults later justify them. A successful password reset changes the password and invalidates the user's existing sessions.
 
 Email verification policy and invitation delivery must be resolved before invitations are implemented.
 
@@ -173,7 +181,7 @@ Candidate documents:
 - require tenant membership and resource authorisation for upload, download and deletion
 - are downloaded as attachments unless a specifically safe preview is implemented
 
-Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in application logs.
+Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in production application logs. Local development uses `MAIL_MAILER=log` as an email-delivery substitute, so a password-reset URL and its token necessarily appear in the local development mail log. That local-only mechanism must not be used as the production mail-delivery strategy.
 
 The malware-scanning approach, retention periods and applicable privacy jurisdiction must be decided before production use.
 

@@ -57,6 +57,54 @@ main {
   box-shadow: 0 1.5rem 4rem rgb(23 49 45 / 8%);
 }
 
+.auth-card {
+  width: min(100%, 32rem);
+}
+
+.foundation-card nav,
+.auth-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+form {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+input {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+button {
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: white;
+  background: var(--foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+a {
+  color: #1d4ed8;
+}
+
+[role="alert"] {
+  color: var(--danger);
+}
+
 .eyebrow {
   margin-bottom: 0.75rem;
   color: var(--success);

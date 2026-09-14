@@ -32,16 +32,16 @@ Exit criteria:
 
 ## Phase 1 — Local Development and Quality Foundation
 
-- [ ] Initialise Laravel backend
-- [ ] Initialise Next.js / React / TypeScript frontend
-- [ ] Configure PostgreSQL
-- [ ] Configure Docker
-- [ ] Verify frontend and backend run locally
-- [ ] Verify Laravel connects to PostgreSQL
-- [ ] Establish backend and frontend test commands
-- [ ] Add formatting and static-analysis commands
-- [ ] Add a minimal GitHub Actions workflow
-- [ ] Define initial `/api/v1` and OpenAPI conventions
+- [x] Initialise Laravel backend
+- [x] Initialise Next.js / React / TypeScript frontend
+- [x] Configure PostgreSQL
+- [x] Configure Docker
+- [x] Verify frontend and backend run locally
+- [x] Verify Laravel connects to PostgreSQL
+- [x] Establish backend and frontend test commands
+- [x] Add formatting and static-analysis commands
+- [x] Add a minimal GitHub Actions workflow
+- [x] Define initial `/api/v1` and OpenAPI conventions
 
 Exit criteria:
 
@@ -49,15 +49,37 @@ Exit criteria:
 - Backend, frontend and database communicate correctly.
 - A minimal test and static-analysis pipeline runs in CI.
 
-## Phase 2 — Identity, Organisation and Multi-tenancy
+## Phase 2-A — Identity Authentication
 
-### Identity
+- [x] Public user registration
+- [x] Automatic sign-in after successful registration
+- [x] Laravel Sanctum stateful cookie authentication
+- [x] Database-backed sessions
+- [x] Protected SPA API routes using `auth:sanctum`
+- [x] Login and logout
+- [x] Current-user endpoint
+- [x] Password reset
+- [x] Invalidate existing sessions after a successful password reset
+- [x] Authentication rate limiting
+- [x] Authentication tests
+- [x] Minimal Next.js registration, login, logout, current-user and password-reset integration
+- [x] OpenAPI authentication contract
 
-- [ ] Laravel Sanctum stateful cookie authentication
-- [ ] Login and logout
-- [ ] Password reset
-- [ ] Authentication rate limiting
-- [ ] Authentication tests
+Phase 2-A permits a global user to exist without an Organisation membership. Email verification is deferred. Sanctum's `personal_access_tokens` infrastructure remains installed, but CareMatch does not issue or manage API tokens and does not add `HasApiTokens` to the User model in this phase.
+
+Password validation requires at least 12 characters, confirmation and a maximum of 72 bytes for the configured bcrypt hasher. Email normalisation is centralised and reused across Identity workflows.
+
+Organisation creation, Organisation memberships, fixed roles, RBAC, tenant resolution, invitations and tenant-isolation enforcement are explicitly outside Phase 2-A.
+
+Exit criteria:
+
+- A user can register, is signed in automatically and may remain without an Organisation membership.
+- A user can log in, retrieve their current identity and log out using a stateful cookie session.
+- A user can request and complete a password reset, and successful reset invalidates their existing sessions.
+- Protected endpoints use `auth:sanctum`; no API-token product functionality is exposed.
+- Backend and minimal frontend authentication tests pass.
+
+## Phase 2-B — Organisation and Multi-tenancy
 
 ### Organisation and Membership
 
