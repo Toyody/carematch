@@ -122,7 +122,22 @@ Fields:
 - `created_at`
 - `updated_at`
 
-Store only a hash of the invitation token. A composite foreign key `(organisation_id, invited_by_user_id)` references an organisation membership, ensuring the inviter belongs to the tenant. Only an active Admin may create, revoke or resend an invitation.
+Store only a SHA-256 hash of a 256-bit random invitation token. The default expiry is seven days. A composite foreign key `(organisation_id, invited_by_user_id)` references an organisation membership, ensuring the inviter belongs to the tenant. Only an active Admin may create, list or revoke an invitation. Resending is deferred.
+
+Constraints and indexes:
+
+- foreign key `organisation_id` to `organisations`
+- composite foreign key `(organisation_id, invited_by_user_id)` to `organisation_memberships(organisation_id, user_id)`
+- CHECK restricting `role` to the three fixed Organisation roles
+- CHECK requiring trimmed lowercase `email`
+- CHECK preventing both `accepted_at` and `revoked_at` from being set
+- unique `token_hash`
+- index `(organisation_id, email)` for tenant administration and conflict checks
+- partial unique index `(organisation_id, email)` where both `accepted_at` and `revoked_at` are null
+
+The partial unique index is the concurrency-safe authority for one unresolved invitation per Organisation and canonical email. PostgreSQL cannot use the volatile current time in this index predicate. When a new invitation replaces an expired unresolved invitation, the creation transaction first marks the expired row revoked and then inserts the new row. Already-revoked and accepted rows do not block a later invitation. Already-revoked revocation is idempotent; accepted invitations cannot be revoked.
+
+Acceptance locks the invitation and any existing membership in one transaction. A missing membership is created; a deactivated membership is reactivated and receives the invitation's persisted role. The transaction then marks the invitation accepted. The existing unique `(organisation_id, user_id)` membership constraint prevents duplicate memberships.
 
 ## 3. Candidate Tables
 

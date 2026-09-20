@@ -2,7 +2,9 @@
 
 namespace App\Modules\Identity\Application\Support;
 
-final class EmailNormalizer
+use App\Modules\Identity\Application\Contracts\CanonicalEmailNormalizer;
+
+final class EmailNormalizer implements CanonicalEmailNormalizer
 {
     public function normalize(string $email): string
     {

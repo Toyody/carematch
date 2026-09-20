@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.4.0
+  version: 0.5.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -12,7 +12,7 @@ info:
     requests.
 
     CareMatch does not expose personal access token issuing or management APIs
-    in Phase 2-A. Phase 2-B2 resolves tenant access from the authenticated user,
+    in Phase 2-A. Phase 2-B resolves tenant access from the authenticated user,
     the organisation route identifier, and an active persisted membership before
     tenant-owned controllers run.
   license:
@@ -341,6 +341,148 @@ paths:
           $ref: "#/components/responses/CsrfTokenMismatch"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/invitations:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: listOrganisationInvitations
+      summary: List organisation invitations
+      description: |
+        Lists invitations belonging to the trusted route organisation. An active
+        Admin membership is required. Invitation token hashes and raw tokens are
+        never returned.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: The organisation invitations visible to an Admin.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationInvitationListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+    post:
+      operationId: createOrganisationInvitation
+      summary: Invite a user to an organisation
+      description: |
+        Creates an invitation for a canonical email and fixed role. Invitations
+        expire after a configurable period whose MVP default is seven days.
+        The organisation and inviter are derived from the trusted tenant context.
+        Existing active members and valid unresolved duplicate invitations are
+        rejected with `409`. The raw token is delivered by email and is never
+        returned by the API or stored in plaintext.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganisationInvitationRequest"
+      responses:
+        "201":
+          description: The invitation was created and its notification was sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationInvitationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+        "409":
+          $ref: "#/components/responses/InvitationConflict"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/invitations/{invitation}/revoke:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/InvitationId"
+    post:
+      operationId: revokeOrganisationInvitation
+      summary: Revoke an organisation invitation
+      description: |
+        Revokes a pending invitation within the trusted route organisation.
+        Repeating the operation for an already-revoked invitation is idempotent
+        and returns `204`. An accepted invitation returns `409`. An invitation
+        from another organisation has the same `404` response as a missing one.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      responses:
+        "204":
+          description: The invitation is revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InvitationNotFound"
+        "409":
+          description: The invitation has already been accepted and cannot be revoked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationConflictError"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+  /organisation-invitations/accept:
+    post:
+      operationId: acceptOrganisationInvitation
+      summary: Accept an organisation invitation
+      description: |
+        Accepts an invitation without requiring an existing tenant membership.
+        The bearer token must be valid, unresolved and unexpired, and the
+        authenticated user's canonical email must match the invited email.
+        The invitation supplies the organisation and role; the session supplies
+        the user. Membership creation or reactivation and token consumption are
+        atomic. Email verification is not required for this MVP flow.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptOrganisationInvitationRequest"
+      responses:
+        "204":
+          description: The membership was created or reactivated and the invitation was accepted.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          description: |
+            Input validation failed, or the invitation is invalid, expired,
+            revoked, already accepted, or addressed to another canonical email.
+            These invitation-state cases intentionally share a safe response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
   /sanctum/csrf-cookie:
     get:
       servers:
@@ -386,6 +528,15 @@ components:
       in: path
       required: true
       description: The organisation identifier resolved against the authenticated user's active membership.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    InvitationId:
+      name: invitation
+      in: path
+      required: true
+      description: Invitation identifier scoped to the trusted route organisation.
       schema:
         type: integer
         format: int64
@@ -441,6 +592,18 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/NotFoundError"
+    InvitationNotFound:
+      description: The invitation does not exist within the trusted route organisation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundError"
+    InvitationConflict:
+      description: The invitee is already active or a valid unresolved invitation exists.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InvitationConflictError"
     CsrfTokenMismatch:
       description: The CSRF token is missing, invalid, or no longer matches the session.
       content:
@@ -565,6 +728,88 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Organisation"
+    OrganisationInvitation:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - email
+        - role
+        - expires_at
+        - accepted_at
+        - revoked_at
+        - created_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Canonical trimmed and lowercased invited email.
+        role:
+          $ref: "#/components/schemas/OrganisationRole"
+        expires_at:
+          type: string
+          format: date-time
+        accepted_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        revoked_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    OrganisationInvitationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/OrganisationInvitation"
+    OrganisationInvitationListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganisationInvitation"
+    CreateOrganisationInvitationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Trimmed and lowercased before validation and invitation creation.
+        role:
+          $ref: "#/components/schemas/OrganisationRole"
+    AcceptOrganisationInvitationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Opaque raw invitation token delivered to the invited email address.
     CreateOrganisationRequest:
       type: object
       additionalProperties: false
@@ -741,6 +986,18 @@ components:
         message:
           type: string
           const: An authenticated user cannot perform this operation.
+    InvitationConflictError:
+      type: object
+      additionalProperties: false
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          enum:
+            - The user is already an active member of this organisation.
+            - An unresolved invitation already exists for this email.
+            - An accepted invitation cannot be revoked.
     RateLimitError:
       type: object
       additionalProperties: false

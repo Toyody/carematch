@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiRequest } from "@/lib/api/client";
 
-import { createOrganisation, listOrganisations } from "./api";
+import {
+  acceptOrganisationInvitation,
+  createOrganisation,
+  listOrganisations,
+} from "./api";
 
 vi.mock("@/lib/api/client", () => ({
   apiRequest: vi.fn(),
@@ -38,5 +42,21 @@ describe("Organisation API", () => {
       method: "POST",
       withCsrf: true,
     });
+  });
+
+  it("accepts an invitation through the shared CSRF client", async () => {
+    vi.mocked(apiRequest).mockResolvedValue(undefined);
+
+    await expect(
+      acceptOrganisationInvitation("raw-token"),
+    ).resolves.toBeUndefined();
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/organisation-invitations/accept",
+      {
+        body: { token: "raw-token" },
+        method: "POST",
+        withCsrf: true,
+      },
+    );
   });
 });

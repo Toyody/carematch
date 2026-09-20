@@ -32,7 +32,7 @@ An Admin cannot remove or demote the organisation's final Admin.
 
 The first-party Next.js SPA uses Laravel Sanctum stateful cookie authentication. Public user registration is included in Phase 2-A. A successful registration creates a global user, starts a database-backed session and signs that user in automatically.
 
-A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Phase 2-B2 establishes active-membership tenant resolution for Organisation detail and settings routes: all active roles may view an Organisation, while only an Admin may update its name. Frontend Organisation selection and invitation workflows remain later Phase 2-B slices.
+A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Phase 2-B2 establishes active-membership tenant resolution for Organisation detail and settings routes: all active roles may view an Organisation, while only an Admin may update its name. Phase 2-B3a adds Admin-managed, seven-day Organisation invitations and atomic membership acceptance. Frontend Organisation selection and the remaining membership-management operations remain later Phase 2-B slices.
 
 The MVP supports:
 
@@ -51,7 +51,7 @@ Protected SPA API routes use Laravel's standard `auth:sanctum` middleware. Sanct
 
 Email addresses are normalised through one central Identity component before authentication or persistence. Passwords require at least 12 characters, must be confirmed, must not contain a NUL byte and must not exceed 72 bytes so they remain compatible with the configured bcrypt hasher. Arbitrary composition rules are not required unless Laravel's supported defaults later justify them. A successful password reset changes the password and invalidates the user's existing sessions.
 
-Email verification policy and invitation delivery must be resolved before invitations are implemented.
+Email verification is not required for MVP invitation acceptance. Acceptance requires possession of the invitation bearer token and an authenticated account whose canonical email matches the invitation email. The invitation determines the Organisation and fixed role; the client cannot override them. Invitation email uses Laravel's mail/notification abstraction. Local development uses the log mailer, while the production provider is deployment configuration.
 
 All tenant-owned API operations identify an organisation in the URL. The backend resolves access from the authenticated global user, the route organisation identifier and a persisted active membership. A missing Organisation, absent membership or deactivated membership is exposed through the same `404` response; an active member whose role cannot perform an operation receives `403`. The backend never trusts client-provided organisation, user, membership or role identifiers to establish access or ownership.
 
@@ -181,7 +181,7 @@ Candidate documents:
 - require tenant membership and resource authorisation for upload, download and deletion
 - are downloaded as attachments unless a specifically safe preview is implemented
 
-Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in production application logs. Local development uses `MAIL_MAILER=log` as an email-delivery substitute, so a password-reset URL and its token necessarily appear in the local development mail log. That local-only mechanism must not be used as the production mail-delivery strategy.
+Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in production application logs. Production HTTP access logging must omit or redact password-reset query strings. Organisation invitation URLs carry the token in a browser fragment, which is not sent to the frontend server or ordinary access logs, and the frontend removes that fragment from the current browser-history entry after reading it. Local development uses `MAIL_MAILER=log` as an email-delivery substitute, so password-reset and Organisation-invitation URLs and their tokens necessarily appear in the local development mail log. That local-only mechanism must not be used as the production mail-delivery strategy.
 
 The malware-scanning approach, retention periods and applicable privacy jurisdiction must be decided before production use.
 
@@ -216,7 +216,6 @@ These decisions do not block the local foundation but must be resolved before th
 1. Whether candidate email is unique within an organisation and how duplicate candidates are merged.
 2. Whether structured skills and employment history belong in v1.0.
 3. The salary/rate model, including currency, range and pay period.
-4. Whether email verification is mandatory and how invitation emails are delivered locally and in production.
-5. The malware-scanning mechanism and behaviour for files awaiting a scan.
-6. Candidate and document retention periods and the governing privacy jurisdiction.
-7. Whether an Admin-only correction flow for terminal application statuses is required after MVP.
+4. The malware-scanning mechanism and behaviour for files awaiting a scan.
+5. Candidate and document retention periods and the governing privacy jurisdiction.
+6. Whether an Admin-only correction flow for terminal application statuses is required after MVP.

@@ -2,9 +2,12 @@
 
 namespace App\Modules\Identity\Infrastructure\Providers;
 
+use App\Modules\Identity\Application\Contracts\CanonicalEmailNormalizer;
+use App\Modules\Identity\Application\Contracts\IdentityUserLookup;
 use App\Modules\Identity\Application\Contracts\PasswordResetStore;
 use App\Modules\Identity\Application\Contracts\UserRegistrationStore;
 use App\Modules\Identity\Application\Support\EmailNormalizer;
+use App\Modules\Identity\Infrastructure\Persistence\EloquentIdentityUserLookup;
 use App\Modules\Identity\Infrastructure\Persistence\EloquentPasswordResetStore;
 use App\Modules\Identity\Infrastructure\Persistence\EloquentUserRegistrationStore;
 use App\Modules\Identity\Interfaces\Validation\Rules\BcryptCompatiblePassword;
@@ -23,6 +26,9 @@ final class IdentityServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(CanonicalEmailNormalizer::class, EmailNormalizer::class);
+        $this->app->bind(IdentityUserLookup::class, EloquentIdentityUserLookup::class);
+
         $this->app->bind(
             UserRegistrationStore::class,
             EloquentUserRegistrationStore::class,

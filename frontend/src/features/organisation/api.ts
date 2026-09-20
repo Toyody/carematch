@@ -40,3 +40,11 @@ export async function listOrganisations(): Promise<Organisation[]> {
 
   return response.data;
 }
+
+export function acceptOrganisationInvitation(token: string): Promise<void> {
+  return apiRequest<void>("/organisation-invitations/accept", {
+    body: { token },
+    method: "POST",
+    withCsrf: true,
+  });
+}

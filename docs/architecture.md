@@ -138,7 +138,11 @@ Email verification is deferred. Users may register and authenticate without a ve
 
 MVP roles are `admin`, `recruiter` and `hiring_manager`, stored on organisation memberships. Laravel Policies implement the permission matrix in `product-requirements.md`. Frontend checks never replace server-side authorisation.
 
-Phase 2-B1 implements Organisation creation with an atomic initial Admin membership and lists only the authenticated user's active memberships. Phase 2-B2 adds request-scoped tenant resolution and an explicit Organisation Policy: all active membership roles may view Organisation details, while only `admin` may update Organisation settings. Organisation Application code receives trusted identifiers and `TenantContext` values without depending on Identity's Eloquent model. Frontend tenant selection, invitations, membership administration, last-Admin protection and nested tenant-resource binding remain later Phase 2-B slices.
+Phase 2-B1 implements Organisation creation with an atomic initial Admin membership and lists only the authenticated user's active memberships. Phase 2-B2 adds request-scoped tenant resolution and an explicit Organisation Policy: all active membership roles may view Organisation details, while only `admin` may update Organisation settings. Phase 2-B3a adds Admin-only invitation creation, listing and revocation plus a global authenticated acceptance endpoint. Invitation acceptance does not require an existing tenant context because the invitee may not yet be a member.
+
+Organisation Application code never imports Identity's Eloquent user. Invitation workflows depend on the small Identity Application contracts for canonical email normalisation and global-user lookup. The HTTP boundary supplies only the authenticated user identifier; the invitation supplies the trusted Organisation and role. Email verification is not required for the MVP invitation flow, so acceptance requires both the high-entropy bearer token and an authenticated account with the matching canonical email.
+
+The raw invitation token exists only in delivery and acceptance-flow memory. The URL carries it in a browser fragment so it is not sent in the frontend HTTP request or ordinary access logs; after reading it, the frontend removes the fragment from the current browser-history entry. PostgreSQL stores a deterministic SHA-256 hash of the 256-bit random token. The default invitation lifetime is seven days and is configured once through CareMatch configuration. Laravel notifications keep delivery vendor-neutral; the log mailer is a local-development substitute only. Frontend tenant selection, role changes, membership deactivation, last-Admin protection and nested tenant-resource binding remain later Phase 2-B slices.
 
 ## 8. Transaction Boundaries
 
@@ -154,6 +158,8 @@ The following operations are single database transactions:
 - any future operation that records multiple writes as one business decision
 
 Phase 2-A continues to use Laravel Password Broker's standard reset sequence: token validation occurs before the reset callback, and token deletion occurs after the callback completes. The User row lock serialises password, remember-token and session mutations for that user, but it does not atomically consume the reset token. Two concurrent requests that both validate before either deletes the token can therefore enter the reset callback. Strict atomic single-use under concurrent requests is an accepted Laravel framework and MVP trade-off; sequential reuse after a successful reset is rejected.
+
+Invitation acceptance is stricter: Infrastructure starts one transaction, locks the invitation row, validates its unresolved and unexpired state plus canonical recipient email, locks any existing membership, creates or reactivates the membership with the persisted invitation role, and then sets `accepted_at`. Concurrent or sequential reuse observes the locked, consumed invitation and fails safely. Any membership write failure rolls back `accepted_at`.
 
 Application status changes use a row lock or explicit version check so concurrent changes cannot silently overwrite each other.
 
