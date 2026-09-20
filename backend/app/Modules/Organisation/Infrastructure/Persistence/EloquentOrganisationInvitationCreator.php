@@ -37,6 +37,11 @@ final class EloquentOrganisationInvitationCreator implements OrganisationInvitat
             $now,
             $expiresAt,
         ): OrganisationInvitationSummary {
+            Organisation::query()
+                ->whereKey($organisationId)
+                ->lockForUpdate()
+                ->firstOrFail(['id']);
+
             $unresolvedInvitation = OrganisationInvitation::query()
                 ->where('organisation_id', $organisationId)
                 ->where('email', $email)

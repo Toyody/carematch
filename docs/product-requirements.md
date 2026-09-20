@@ -32,7 +32,7 @@ An Admin cannot remove or demote the organisation's final Admin.
 
 The first-party Next.js SPA uses Laravel Sanctum stateful cookie authentication. Public user registration is included in Phase 2-A. A successful registration creates a global user, starts a database-backed session and signs that user in automatically.
 
-A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Phase 2-B2 establishes active-membership tenant resolution for Organisation detail and settings routes: all active roles may view an Organisation, while only an Admin may update its name. Phase 2-B3a adds Admin-managed, seven-day Organisation invitations and atomic membership acceptance. Frontend Organisation selection and the remaining membership-management operations remain later Phase 2-B slices.
+A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Phase 2-B2 establishes active-membership tenant resolution for Organisation detail and settings routes: all active roles may view an Organisation, while only an Admin may update its name. Phase 2-B3a adds Admin-managed, seven-day Organisation invitations and atomic membership acceptance. Phase 2-B3b adds Admin-only membership history listing, fixed-role changes and membership deactivation. Frontend Organisation selection and membership-administration UI remain later work.
 
 The MVP supports:
 
@@ -54,6 +54,8 @@ Email addresses are normalised through one central Identity component before aut
 Email verification is not required for MVP invitation acceptance. Acceptance requires possession of the invitation bearer token and an authenticated account whose canonical email matches the invitation email. The invitation determines the Organisation and fixed role; the client cannot override them. Invitation email uses Laravel's mail/notification abstraction. Local development uses the log mailer, while the production provider is deployment configuration.
 
 All tenant-owned API operations identify an organisation in the URL. The backend resolves access from the authenticated global user, the route organisation identifier and a persisted active membership. A missing Organisation, absent membership or deactivated membership is exposed through the same `404` response; an active member whose role cannot perform an operation receives `403`. The backend never trusts client-provided organisation, user, membership or role identifiers to establish access or ownership.
+
+An active Admin may list active and deactivated memberships, change an active membership's fixed role, and deactivate a membership without deleting its historical row. Self-management is allowed when the same invariant as every other change is satisfied: every Organisation must retain at least one active Admin. The final active Admin cannot be demoted or deactivated. Invitation acceptance is the only MVP mechanism that reactivates a deactivated membership; a general reactivation endpoint is not provided.
 
 ## 4. MVP Scope
 

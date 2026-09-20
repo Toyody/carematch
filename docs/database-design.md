@@ -101,8 +101,11 @@ Constraints:
 - unique `(organisation_id, id)` for tenant-safe references
 - foreign keys to `organisations` and `users`
 - CHECK restricting `role` to supported values
+- partial index on `organisation_id` where `role = 'admin'` and `deactivated_at IS NULL`
 
-An active membership has no `deactivated_at` value. Membership removal deactivates the record rather than deleting audit identity. The application prevents removal or demotion of the last active Admin.
+An active membership has no `deactivated_at` value. Membership removal deactivates the record rather than deleting audit identity. Admin membership listing includes both active and deactivated records. Deactivated memberships cannot have their role changed and are reactivated only by invitation acceptance in the MVP.
+
+The application prevents removal or demotion of the last active Admin. A cross-row CHECK constraint cannot enforce this invariant, so membership-management mutations serialise on the parent Organisation row, lock the actor and target membership rows, and evaluate the remaining active Admin set in the same transaction. The partial active-Admin index supports that invariant query without changing the existing uniqueness or foreign-key constraints.
 
 ### `organisation_invitations`
 
@@ -298,6 +301,7 @@ Expected indexes:
 - unique `personal_access_tokens(token)` from Sanctum's standard migration
 - unique `organisation_memberships(organisation_id, user_id)`
 - `organisation_memberships(user_id, organisation_id)`
+- partial `organisation_memberships(organisation_id)` for active Admin rows
 - `organisation_invitations(organisation_id, email)`
 - `candidates(organisation_id, created_at)`
 - `candidates(organisation_id, last_name, first_name)`
@@ -315,9 +319,12 @@ The following writes are atomic:
 
 - organisation plus initial Admin membership
 - invitation acceptance plus membership creation or activation
+- membership role changes and deactivation, including last-active-Admin evaluation
 - application plus initial status history
 - application status update plus status history append
 
 Application status updates use row locking or an explicit version check. A stale transition fails rather than overwriting a concurrent change.
+
+Membership-management mutations lock the Organisation row before membership rows, making the last-active-Admin check and write one serial decision per Organisation. Invitation creation and acceptance follow the same Organisation-first root lock before taking invitation and membership locks. This prevents concurrent demotion/deactivation operations from leaving zero active Admins and avoids inconsistent lock ordering with invitation membership reactivation.
 
 Document storage uses compensating cleanup because object storage and PostgreSQL do not share a transaction.
