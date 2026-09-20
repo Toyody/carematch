@@ -32,7 +32,7 @@ An Admin cannot remove or demote the organisation's final Admin.
 
 The first-party Next.js SPA uses Laravel Sanctum stateful cookie authentication. Public user registration is included in Phase 2-A. A successful registration creates a global user, starts a database-backed session and signs that user in automatically.
 
-A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Tenant selection, invitation workflows, full role-based access control and tenant isolation are implemented in later Phase 2-B slices.
+A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Phase 2-B2 establishes active-membership tenant resolution for Organisation detail and settings routes: all active roles may view an Organisation, while only an Admin may update its name. Frontend Organisation selection and invitation workflows remain later Phase 2-B slices.
 
 The MVP supports:
 
@@ -53,7 +53,7 @@ Email addresses are normalised through one central Identity component before aut
 
 Email verification policy and invitation delivery must be resolved before invitations are implemented.
 
-All tenant-owned API operations identify an organisation in the URL. The backend verifies the authenticated user's membership and never trusts a client-provided `organisation_id` to assign ownership.
+All tenant-owned API operations identify an organisation in the URL. The backend resolves access from the authenticated global user, the route organisation identifier and a persisted active membership. A missing Organisation, absent membership or deactivated membership is exposed through the same `404` response; an active member whose role cannot perform an operation receives `403`. The backend never trusts client-provided organisation, user, membership or role identifiers to establish access or ownership.
 
 ## 4. MVP Scope
 

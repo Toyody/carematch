@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -12,8 +12,9 @@ info:
     requests.
 
     CareMatch does not expose personal access token issuing or management APIs
-    in Phase 2-A. Phase 2-B1 adds organisation creation and active membership
-    listing without introducing a global tenant context.
+    in Phase 2-A. Phase 2-B2 resolves tenant access from the authenticated user,
+    the organisation route identifier, and an active persisted membership before
+    tenant-owned controllers run.
   license:
     name: All rights reserved
 servers:
@@ -276,6 +277,70 @@ paths:
           $ref: "#/components/responses/CsrfTokenMismatch"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: getOrganisation
+      summary: Get an accessible organisation
+      description: |
+        Resolves the route organisation against the authenticated user's active
+        persisted membership. Nonexistent organisations, organisations without
+        a membership for the user, and deactivated memberships all return the
+        same `404` response.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: The organisation and the current user's membership role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+    patch:
+      operationId: updateOrganisation
+      summary: Update organisation settings
+      description: |
+        Updates the accessible organisation identified by the route. An active
+        Admin membership is required. Recruiter and Hiring Manager memberships
+        are valid tenant access but are not authorised to update settings.
+        Ownership and membership identifiers are derived by the server and are
+        not accepted from the request body.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrganisationRequest"
+      responses:
+        "200":
+          description: The organisation name was updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
   /sanctum/csrf-cookie:
     get:
       servers:
@@ -316,6 +381,15 @@ components:
         clients must send requests with credentials. This scheme does not
         represent a Bearer token or a personal access token.
   parameters:
+    OrganisationId:
+      name: organisation
+      in: path
+      required: true
+      description: The organisation identifier resolved against the authenticated user's active membership.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     XsrfToken:
       name: X-XSRF-TOKEN
       in: header
@@ -352,6 +426,21 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/UnauthenticatedError"
+    Forbidden:
+      description: The active tenant member does not have the required role for this operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ForbiddenError"
+    TenantNotFound:
+      description: |
+        The organisation is nonexistent or is not available through an active
+        membership for the authenticated user. These cases are intentionally
+        indistinguishable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundError"
     CsrfTokenMismatch:
       description: The CSRF token is missing, invalid, or no longer matches the session.
       content:
@@ -486,6 +575,16 @@ components:
           type: string
           minLength: 1
           maxLength: 255
+    UpdateOrganisationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
     RegisterRequest:
       type: object
       additionalProperties: false
@@ -606,6 +705,24 @@ components:
         message:
           type: string
           const: Unauthenticated.
+    ForbiddenError:
+      type: object
+      additionalProperties: false
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          const: This action is unauthorized.
+    NotFoundError:
+      type: object
+      additionalProperties: false
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          const: Not Found
     CsrfError:
       type: object
       additionalProperties: false
