@@ -6,7 +6,6 @@ use App\Modules\Identity\Infrastructure\Persistence\User;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -40,8 +39,8 @@ final class SessionAuthenticationTest extends TestCase
         self::assertSame(['created_at', 'email', 'id', 'name'], $this->sortedKeys($data));
         self::assertNotSame($previousSessionId, $this->app['session']->getId());
         $this->assertAuthenticatedAs($user, 'web');
-        self::assertFalse(Schema::hasTable('organisations'));
-        self::assertFalse(Schema::hasTable('organisation_memberships'));
+        $this->assertDatabaseCount('organisations', 0);
+        $this->assertDatabaseCount('organisation_memberships', 0);
     }
 
     public function test_email_is_normalised_before_authentication(): void

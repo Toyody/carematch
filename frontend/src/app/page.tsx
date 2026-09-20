@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ApiHealth } from "@/components/system/api-health";
 import { useAuth } from "@/features/identity/auth-context";
+import { OrganisationPanel } from "@/features/organisation/organisation-panel";
 
 export default function Home() {
   const { error, isLoading, logout, user } = useAuth();
@@ -27,7 +28,7 @@ export default function Home() {
   return (
     <main>
       <section aria-labelledby="page-title" className="foundation-card">
-        <p className="eyebrow">Phase 2-A Identity</p>
+        <p className="eyebrow">Phase 2-B Organisation foundation</p>
         <h1 id="page-title">CareMatch</h1>
         <p>
           Healthcare workforce and recruitment, built one focused slice at a
@@ -56,6 +57,8 @@ export default function Home() {
         ) : null}
         {error ? <p role="alert">{error}</p> : null}
         {logoutError ? <p role="alert">{logoutError}</p> : null}
+
+        {!isLoading && user ? <OrganisationPanel /> : null}
 
         <ApiHealth />
       </section>

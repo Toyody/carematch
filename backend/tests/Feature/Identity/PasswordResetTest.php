@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -145,8 +144,8 @@ final class PasswordResetTest extends TestCase
         $this->login('reset-user@example.test', $newPassword)
             ->assertOk();
 
-        self::assertFalse(Schema::hasTable('organisations'));
-        self::assertFalse(Schema::hasTable('organisation_memberships'));
+        $this->assertDatabaseCount('organisations', 0);
+        $this->assertDatabaseCount('organisation_memberships', 0);
     }
 
     public function test_invalid_and_expired_tokens_use_the_same_safe_error(): void

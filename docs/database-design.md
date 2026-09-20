@@ -78,9 +78,8 @@ Fields:
 - `name`
 - `created_at`
 - `updated_at`
-- `deleted_at`, if soft deletion is adopted
 
-An organisation with dependent recruitment data is not physically deleted through a normal user operation.
+Phase 2-B1 does not expose organisation deletion or add speculative soft-deletion columns. An organisation with dependent recruitment data will not be physically deleted through a normal user operation when deletion behaviour is designed later.
 
 ### `organisation_memberships`
 

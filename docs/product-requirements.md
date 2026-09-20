@@ -32,7 +32,7 @@ An Admin cannot remove or demote the organisation's final Admin.
 
 The first-party Next.js SPA uses Laravel Sanctum stateful cookie authentication. Public user registration is included in Phase 2-A. A successful registration creates a global user, starts a database-backed session and signs that user in automatically.
 
-A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Organisation creation, memberships, role-based access control and tenant isolation are implemented after Phase 2-A.
+A global user may exist without any Organisation membership. Registration does not create an Organisation or membership, and an authenticated user without a membership cannot access tenant-owned operations. Phase 2-B1 adds Organisation creation with an atomic initial Admin membership and listing of the authenticated user's active Organisation memberships. Tenant selection, invitation workflows, full role-based access control and tenant isolation are implemented in later Phase 2-B slices.
 
 The MVP supports:
 

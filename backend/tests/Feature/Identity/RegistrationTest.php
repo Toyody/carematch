@@ -10,7 +10,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Mockery;
 use Tests\TestCase;
@@ -48,8 +47,8 @@ final class RegistrationTest extends TestCase
 
         self::assertIsArray($data);
         self::assertSame(['created_at', 'email', 'id', 'name'], $this->sortedKeys($data));
-        self::assertFalse(Schema::hasTable('organisations'));
-        self::assertFalse(Schema::hasTable('organisation_memberships'));
+        $this->assertDatabaseCount('organisations', 0);
+        $this->assertDatabaseCount('organisation_memberships', 0);
     }
 
     public function test_an_authenticated_user_receives_conflict_without_creating_another_user(): void
