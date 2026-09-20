@@ -21,7 +21,7 @@ Status: In Progress
 - [ ] Decide candidate email uniqueness and duplicate handling
 - [ ] Decide whether structured skills and employment history are in v1.0
 - [ ] Decide salary/rate representation
-- [ ] Decide email verification and invitation delivery
+- [x] Resolve MVP invitation verification and vendor-neutral delivery policy
 - [ ] Decide document malware scanning and retention policy before production use
 
 Exit criteria:
@@ -86,7 +86,7 @@ Exit criteria:
 - [x] Organisation creation with initial Admin membership in one transaction
 - [x] Active Organisation listing for the authenticated user's memberships
 - [ ] Organisation selection for multi-organisation users
-- [ ] Membership invitation lifecycle
+- [x] Membership invitation creation, listing, revocation and atomic acceptance
 - [x] Fixed membership roles enforced in the membership foundation schema
 - [ ] Last-Admin protection
 - [x] Laravel Policies and active-membership tenant route resolution for Organisation routes
@@ -98,7 +98,7 @@ Exit criteria:
 - [x] Cross-tenant Organisation read tests
 - [x] Cross-tenant Organisation write tests
 - [x] Organisation tenant-route resolution tests
-- [ ] Membership lifecycle and validation tests
+- [x] Invitation lifecycle, validation, integrity and tenant-isolation tests
 
 Exit criteria:
 
