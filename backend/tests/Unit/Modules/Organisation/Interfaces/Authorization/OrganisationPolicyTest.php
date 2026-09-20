@@ -29,6 +29,7 @@ final class OrganisationPolicyTest extends TestCase
         self::assertTrue($policy->view($user, $tenant));
         self::assertSame($mayUpdate, $policy->update($user, $tenant));
         self::assertSame($mayUpdate, $policy->manageInvitations($user, $tenant));
+        self::assertSame($mayUpdate, $policy->manageMemberships($user, $tenant));
     }
 
     public function test_a_context_for_another_user_is_never_authorised(): void
@@ -46,6 +47,7 @@ final class OrganisationPolicyTest extends TestCase
         self::assertFalse($policy->view($user, $tenant));
         self::assertFalse($policy->update($user, $tenant));
         self::assertFalse($policy->manageInvitations($user, $tenant));
+        self::assertFalse($policy->manageMemberships($user, $tenant));
     }
 
     /**

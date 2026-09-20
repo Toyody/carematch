@@ -1,9 +1,12 @@
 <?php
 
 use App\Modules\Organisation\Interfaces\Http\Controllers\AcceptOrganisationInvitationController;
+use App\Modules\Organisation\Interfaces\Http\Controllers\ChangeOrganisationMembershipRoleController;
 use App\Modules\Organisation\Interfaces\Http\Controllers\CreateOrganisationController;
 use App\Modules\Organisation\Interfaces\Http\Controllers\CreateOrganisationInvitationController;
+use App\Modules\Organisation\Interfaces\Http\Controllers\DeactivateOrganisationMembershipController;
 use App\Modules\Organisation\Interfaces\Http\Controllers\ListOrganisationInvitationsController;
+use App\Modules\Organisation\Interfaces\Http\Controllers\ListOrganisationMembershipsController;
 use App\Modules\Organisation\Interfaces\Http\Controllers\ListOrganisationsController;
 use App\Modules\Organisation\Interfaces\Http\Controllers\RevokeOrganisationInvitationController;
 use App\Modules\Organisation\Interfaces\Http\Controllers\ShowOrganisationController;
@@ -38,5 +41,16 @@ Route::middleware('auth:sanctum')->group(function (): void {
                 ->name('api.v1.organisation-invitations.revoke')
                 ->whereNumber('organisation')
                 ->whereNumber('invitation');
+            Route::get('/organisations/{organisation}/memberships', ListOrganisationMembershipsController::class)
+                ->name('api.v1.organisation-memberships.index')
+                ->whereNumber('organisation');
+            Route::patch('/organisations/{organisation}/memberships/{membership}', ChangeOrganisationMembershipRoleController::class)
+                ->name('api.v1.organisation-memberships.update-role')
+                ->whereNumber('organisation')
+                ->whereNumber('membership');
+            Route::post('/organisations/{organisation}/memberships/{membership}/deactivate', DeactivateOrganisationMembershipController::class)
+                ->name('api.v1.organisation-memberships.deactivate')
+                ->whereNumber('organisation')
+                ->whereNumber('membership');
         });
 });

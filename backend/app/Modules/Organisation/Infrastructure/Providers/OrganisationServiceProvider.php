@@ -12,6 +12,8 @@ use App\Modules\Organisation\Application\Contracts\OrganisationInvitationCreator
 use App\Modules\Organisation\Application\Contracts\OrganisationInvitationLister;
 use App\Modules\Organisation\Application\Contracts\OrganisationInvitationNotifier;
 use App\Modules\Organisation\Application\Contracts\OrganisationInvitationRevoker;
+use App\Modules\Organisation\Application\Contracts\OrganisationMembershipLister;
+use App\Modules\Organisation\Application\Contracts\OrganisationMembershipMutator;
 use App\Modules\Organisation\Application\Contracts\OrganisationNameUpdater;
 use App\Modules\Organisation\Application\Data\TenantContext;
 use App\Modules\Organisation\Infrastructure\Notifications\LaravelOrganisationInvitationNotifier;
@@ -23,6 +25,8 @@ use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationInvi
 use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationInvitationCreator;
 use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationInvitationLister;
 use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationInvitationRevoker;
+use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationMembershipLister;
+use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationMembershipMutator;
 use App\Modules\Organisation\Infrastructure\Persistence\EloquentOrganisationNameUpdater;
 use App\Modules\Organisation\Interfaces\Authorization\OrganisationPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -80,6 +84,16 @@ final class OrganisationServiceProvider extends ServiceProvider
         $this->app->bind(
             OrganisationInvitationNotifier::class,
             LaravelOrganisationInvitationNotifier::class,
+        );
+
+        $this->app->bind(
+            OrganisationMembershipLister::class,
+            EloquentOrganisationMembershipLister::class,
+        );
+
+        $this->app->bind(
+            OrganisationMembershipMutator::class,
+            EloquentOrganisationMembershipMutator::class,
         );
 
         $this->app->when(CreateOrganisationInvitation::class)

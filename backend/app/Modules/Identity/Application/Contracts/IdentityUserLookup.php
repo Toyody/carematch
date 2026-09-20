@@ -9,4 +9,10 @@ interface IdentityUserLookup
     public function findByCanonicalEmail(string $email): ?IdentityUser;
 
     public function findById(int $userId): ?IdentityUser;
+
+    /**
+     * @param  list<int>  $userIds
+     * @return array<int, IdentityUser>
+     */
+    public function findByIds(array $userIds): array;
 }

@@ -25,6 +25,12 @@ final class OrganisationPolicy
             && $tenant->role === OrganisationRole::Admin;
     }
 
+    public function manageMemberships(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->matchesAuthenticatedUser($user, $tenant)
+            && $tenant->role === OrganisationRole::Admin;
+    }
+
     private function matchesAuthenticatedUser(Authenticatable $user, TenantContext $tenant): bool
     {
         return $user->getAuthIdentifier() === $tenant->userId;

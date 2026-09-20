@@ -87,8 +87,9 @@ Exit criteria:
 - [x] Active Organisation listing for the authenticated user's memberships
 - [ ] Organisation selection for multi-organisation users
 - [x] Membership invitation creation, listing, revocation and atomic acceptance
+- [x] Admin membership listing, fixed-role changes and deactivation
 - [x] Fixed membership roles enforced in the membership foundation schema
-- [ ] Last-Admin protection
+- [x] Transactional last-active-Admin protection
 - [x] Laravel Policies and active-membership tenant route resolution for Organisation routes
 - [ ] Tenant-aware nested resource binding for Candidate and Recruitment routes
 
@@ -99,6 +100,7 @@ Exit criteria:
 - [x] Cross-tenant Organisation write tests
 - [x] Organisation tenant-route resolution tests
 - [x] Invitation lifecycle, validation, integrity and tenant-isolation tests
+- [x] Membership management authorisation, state, last-Admin and tenant-isolation tests
 
 Exit criteria:
 

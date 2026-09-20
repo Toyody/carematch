@@ -22,7 +22,21 @@ final class EloquentOrganisationInvitationAcceptor implements OrganisationInvita
             $canonicalEmail,
             $acceptedAt,
         ): void {
+            $organisationId = OrganisationInvitation::query()
+                ->where('token_hash', $tokenHash)
+                ->value('organisation_id');
+
+            if (! is_int($organisationId)) {
+                throw new InvitationUnavailable;
+            }
+
+            Organisation::query()
+                ->whereKey($organisationId)
+                ->lockForUpdate()
+                ->firstOrFail(['id']);
+
             $invitation = OrganisationInvitation::query()
+                ->where('organisation_id', $organisationId)
                 ->where('token_hash', $tokenHash)
                 ->lockForUpdate()
                 ->first();
@@ -32,7 +46,6 @@ final class EloquentOrganisationInvitationAcceptor implements OrganisationInvita
                 throw new InvitationUnavailable;
             }
 
-            $organisationId = (int) $invitation->getAttribute('organisation_id');
             $membership = OrganisationMembership::query()
                 ->where('organisation_id', $organisationId)
                 ->where('user_id', $userId)

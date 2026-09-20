@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -409,6 +409,111 @@ paths:
           $ref: "#/components/responses/CsrfTokenMismatch"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/memberships:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: listOrganisationMemberships
+      summary: List organisation memberships
+      description: |
+        Lists active and deactivated memberships belonging to the trusted route
+        organisation. An active Admin membership is required. Identity details
+        are limited to the member identifier, name, and canonical email.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: Active and deactivated memberships for the organisation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationMembershipListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+  /organisations/{organisation}/memberships/{membership}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/MembershipId"
+    patch:
+      operationId: changeOrganisationMembershipRole
+      summary: Change an active membership role
+      description: |
+        Changes an active membership to one of the fixed Organisation roles.
+        The target is scoped to the trusted route organisation. The operation
+        is idempotent when the requested role is already assigned. Demoting the
+        final active Admin is rejected with `409`.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeOrganisationMembershipRoleRequest"
+      responses:
+        "200":
+          description: The current membership representation after the role change.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganisationMembershipResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/MembershipNotFound"
+        "409":
+          $ref: "#/components/responses/MembershipConflict"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/memberships/{membership}/deactivate:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/MembershipId"
+    post:
+      operationId: deactivateOrganisationMembership
+      summary: Deactivate an organisation membership
+      description: |
+        Deactivates the tenant-scoped membership without deleting its historical
+        row. Repeating the operation for an already-deactivated membership is
+        idempotent and returns `204` while the requester still has active Admin
+        access. A requester who deactivated their own membership no longer has
+        tenant access and receives the normal tenant `404` on a later request.
+        Deactivating the final active Admin is rejected with `409`.
+      tags:
+        - Organisation
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      responses:
+        "204":
+          description: The membership is deactivated or was already deactivated.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/MembershipNotFound"
+        "409":
+          $ref: "#/components/responses/MembershipConflict"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
   /organisations/{organisation}/invitations/{invitation}/revoke:
     parameters:
       - $ref: "#/components/parameters/OrganisationId"
@@ -541,6 +646,15 @@ components:
         type: integer
         format: int64
         minimum: 1
+    MembershipId:
+      name: membership
+      in: path
+      required: true
+      description: Membership identifier scoped to the trusted route organisation.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     XsrfToken:
       name: X-XSRF-TOKEN
       in: header
@@ -604,6 +718,18 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/InvitationConflictError"
+    MembershipNotFound:
+      description: The membership does not exist within the trusted route organisation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundError"
+    MembershipConflict:
+      description: The requested operation conflicts with membership state or the last-Admin invariant.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MembershipConflictError"
     CsrfTokenMismatch:
       description: The CSRF token is missing, invalid, or no longer matches the session.
       content:
@@ -681,6 +807,84 @@ components:
         - recruiter
         - hiring_manager
     OrganisationMembershipSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - role
+      properties:
+        role:
+          $ref: "#/components/schemas/OrganisationRole"
+    OrganisationMemberIdentity:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: The global user's canonical email.
+    OrganisationMembership:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - user
+        - role
+        - deactivated_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        user:
+          $ref: "#/components/schemas/OrganisationMemberIdentity"
+        role:
+          $ref: "#/components/schemas/OrganisationRole"
+        deactivated_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Null for an active membership; set for a deactivated membership.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OrganisationMembershipResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/OrganisationMembership"
+    OrganisationMembershipListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganisationMembership"
+    ChangeOrganisationMembershipRoleRequest:
       type: object
       additionalProperties: false
       required:
@@ -998,6 +1202,17 @@ components:
             - The user is already an active member of this organisation.
             - An unresolved invitation already exists for this email.
             - An accepted invitation cannot be revoked.
+    MembershipConflictError:
+      type: object
+      additionalProperties: false
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          enum:
+            - An organisation must retain at least one active Admin.
+            - A deactivated membership role cannot be changed.
     RateLimitError:
       type: object
       additionalProperties: false
