@@ -89,14 +89,15 @@ Exit criteria:
 - [ ] Membership invitation lifecycle
 - [x] Fixed membership roles enforced in the membership foundation schema
 - [ ] Last-Admin protection
-- [ ] Laravel Policies and tenant-aware route binding
+- [x] Laravel Policies and active-membership tenant route resolution for Organisation routes
+- [ ] Tenant-aware nested resource binding for Candidate and Recruitment routes
 
 ### Isolation verification
 
-- [ ] Authorisation tests for each role
-- [ ] Cross-tenant read tests
-- [ ] Cross-tenant write tests
-- [ ] Cross-tenant route-binding tests
+- [x] Authorisation tests for each role on Organisation detail/settings
+- [x] Cross-tenant Organisation read tests
+- [x] Cross-tenant Organisation write tests
+- [x] Organisation tenant-route resolution tests
 - [ ] Membership lifecycle and validation tests
 
 Exit criteria:

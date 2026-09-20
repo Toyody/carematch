@@ -114,6 +114,10 @@ For each request, the backend:
 4. Creates a request-scoped tenant context.
 5. Scopes route binding, authorisation and queries to that tenant.
 
+Phase 2-B2 implements this boundary for Organisation detail and settings routes. After `auth:sanctum`, tenant middleware uses the unbound numeric route identifier and authenticated user identifier to resolve an active persisted membership through an Application port. It stores a framework-independent, read-only `TenantContext` in the current HTTP request attributes. The context contains only organisation, user and membership identifiers plus the fixed persisted role; it is not a global mutable singleton and Application actions receive it explicitly.
+
+The resolver does not first expose a globally bound Organisation model. Nonexistent Organisations, missing memberships and deactivated memberships therefore fail through the same `404` path. Once active tenant access is established, Laravel Policies return `403` when the persisted role lacks permission. Tenant-aware binding for future nested Candidate and Recruitment resources remains deferred to those vertical slices.
+
 Client-supplied `organisation_id` does not determine ownership. Create operations use the trusted tenant context.
 
 Tenant protection is layered through membership middleware, Policies, tenant-scoped route binding and queries, application invariants, composite PostgreSQL constraints and negative isolation tests. A global Eloquent scope may be defence in depth but cannot be the only control.
@@ -134,7 +138,7 @@ Email verification is deferred. Users may register and authenticate without a ve
 
 MVP roles are `admin`, `recruiter` and `hiring_manager`, stored on organisation memberships. Laravel Policies implement the permission matrix in `product-requirements.md`. Frontend checks never replace server-side authorisation.
 
-Phase 2-B1 implements Organisation creation with an atomic initial Admin membership and lists only the authenticated user's active memberships. It passes the authenticated global user identifier across the HTTP-to-Application boundary and does not couple Organisation Application code to Identity's Eloquent model. Tenant selection, invitations, membership administration, Policies, tenant resolution and tenant-isolation enforcement remain later Phase 2-B slices.
+Phase 2-B1 implements Organisation creation with an atomic initial Admin membership and lists only the authenticated user's active memberships. Phase 2-B2 adds request-scoped tenant resolution and an explicit Organisation Policy: all active membership roles may view Organisation details, while only `admin` may update Organisation settings. Organisation Application code receives trusted identifiers and `TenantContext` values without depending on Identity's Eloquent model. Frontend tenant selection, invitations, membership administration, last-Admin protection and nested tenant-resource binding remain later Phase 2-B slices.
 
 ## 8. Transaction Boundaries
 
