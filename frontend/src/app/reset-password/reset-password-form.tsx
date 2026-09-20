@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-import { FormError } from "@/components/identity/form-error";
+import { FormError } from "@/components/forms/form-error";
 import { resetPassword } from "@/features/identity/api";
 
 export function ResetPasswordForm() {

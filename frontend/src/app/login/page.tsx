@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
-import { FormError } from "@/components/identity/form-error";
+import { FormError } from "@/components/forms/form-error";
 import { useAuth } from "@/features/identity/auth-context";
 
 export default function LoginPage() {

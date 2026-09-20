@@ -6,7 +6,6 @@ use App\Modules\Identity\Infrastructure\Persistence\User;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -265,8 +264,8 @@ final class AuthenticationRateLimitingTest extends TestCase
             ip: '192.0.2.50',
         ));
         $this->assertRateLimited($this->register(ip: '192.0.2.50'));
-        self::assertFalse(Schema::hasTable('organisations'));
-        self::assertFalse(Schema::hasTable('organisation_memberships'));
+        $this->assertDatabaseCount('organisations', 0);
+        $this->assertDatabaseCount('organisation_memberships', 0);
     }
 
     private function login(

@@ -10,3 +10,7 @@ Route::prefix('v1')->group(function (): void {
 Route::prefix('v1')->group(
     base_path('app/Modules/Identity/Interfaces/Http/routes.php'),
 );
+
+Route::prefix('v1')->group(
+    base_path('app/Modules/Organisation/Interfaces/Http/routes.php'),
+);

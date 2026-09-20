@@ -141,3 +141,30 @@ h1 {
 .api-health[data-status="error"] {
   color: var(--danger);
 }
+
+.organisation-panel {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.organisation-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  list-style: none;
+}
+
+.organisation-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.organisation-list li span:last-child {
+  color: var(--muted);
+  font-size: 0.875rem;
+}

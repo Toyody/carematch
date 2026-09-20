@@ -134,7 +134,7 @@ Email verification is deferred. Users may register and authenticate without a ve
 
 MVP roles are `admin`, `recruiter` and `hiring_manager`, stored on organisation memberships. Laravel Policies implement the permission matrix in `product-requirements.md`. Frontend checks never replace server-side authorisation.
 
-Organisation creation, memberships, RBAC, tenant resolution and tenant-isolation enforcement are outside Phase 2-A and begin only in the subsequent Organisation slice.
+Phase 2-B1 implements Organisation creation with an atomic initial Admin membership and lists only the authenticated user's active memberships. It passes the authenticated global user identifier across the HTTP-to-Application boundary and does not couple Organisation Application code to Identity's Eloquent model. Tenant selection, invitations, membership administration, Policies, tenant resolution and tenant-isolation enforcement remain later Phase 2-B slices.
 
 ## 8. Transaction Boundaries
 

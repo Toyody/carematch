@@ -83,10 +83,11 @@ Exit criteria:
 
 ### Organisation and Membership
 
-- [ ] Organisation creation with initial Admin membership in one transaction
+- [x] Organisation creation with initial Admin membership in one transaction
+- [x] Active Organisation listing for the authenticated user's memberships
 - [ ] Organisation selection for multi-organisation users
 - [ ] Membership invitation lifecycle
-- [ ] Fixed membership roles
+- [x] Fixed membership roles enforced in the membership foundation schema
 - [ ] Last-Admin protection
 - [ ] Laravel Policies and tenant-aware route binding
 
