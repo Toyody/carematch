@@ -130,7 +130,7 @@ export function InvitationAcceptance() {
       {accepted ? (
         <div role="status">
           <p>Your organisation invitation has been accepted.</p>
-          <Link href="/">Continue to CareMatch</Link>
+          <Link href="/">View your organisations</Link>
         </div>
       ) : (
         <>

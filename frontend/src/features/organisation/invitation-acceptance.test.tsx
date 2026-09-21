@@ -71,6 +71,9 @@ describe("InvitationAcceptance", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(
       "Your organisation invitation has been accepted.",
     );
+    expect(
+      screen.getByRole("link", { name: "View your organisations" }),
+    ).toHaveAttribute("href", "/");
   });
 
   it("shows the safe API error when acceptance fails", async () => {

@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/api/client";
 import {
   acceptOrganisationInvitation,
   createOrganisation,
+  getOrganisation,
   listOrganisations,
 } from "./api";
 
@@ -42,6 +43,17 @@ describe("Organisation API", () => {
       method: "POST",
       withCsrf: true,
     });
+  });
+
+  it("gets one organisation through the shared session client", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ data: organisation });
+
+    await expect(getOrganisation(organisation.id)).resolves.toEqual(
+      organisation,
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      `/organisations/${organisation.id}`,
+    );
   });
 
   it("accepts an invitation through the shared CSRF client", async () => {

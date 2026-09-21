@@ -85,7 +85,7 @@ Exit criteria:
 
 - [x] Organisation creation with initial Admin membership in one transaction
 - [x] Active Organisation listing for the authenticated user's memberships
-- [ ] Organisation selection for multi-organisation users
+- [x] Organisation selection for multi-organisation users
 - [x] Membership invitation creation, listing, revocation and atomic acceptance
 - [x] Admin membership listing, fixed-role changes and deactivation
 - [x] Fixed membership roles enforced in the membership foundation schema
