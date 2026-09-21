@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.6.0
+  version: 0.7.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -14,7 +14,8 @@ info:
     CareMatch does not expose personal access token issuing or management APIs
     in Phase 2-A. Phase 2-B resolves tenant access from the authenticated user,
     the organisation route identifier, and an active persisted membership before
-    tenant-owned controllers run.
+    tenant-owned controllers run. Phase 3A applies that boundary to Candidate
+    resources and scopes every nested Candidate identifier to its route Organisation.
   license:
     name: All rights reserved
 servers:
@@ -341,6 +342,173 @@ paths:
           $ref: "#/components/responses/CsrfTokenMismatch"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/candidates:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: listCandidates
+      summary: List candidates in an organisation
+      description: |
+        Returns a bounded, paginated list scoped to the trusted route Organisation.
+        Search is a case-insensitive literal substring match across first name,
+        last name, combined first/last name, and email. Occupation is an exact
+        filter. All active Organisation roles may list Candidates.
+      tags:
+        - Candidate
+      security:
+        - StatefulSession: []
+      parameters:
+        - name: search
+          in: query
+          description: Case-insensitive literal substring matched against Candidate name and email.
+          schema:
+            type: string
+            maxLength: 255
+        - name: occupation
+          in: query
+          description: Exact occupation value to filter by.
+          schema:
+            type: string
+            maxLength: 255
+        - name: sort
+          in: query
+          description: Allow-listed Candidate sort. Defaults to `created_at`.
+          schema:
+            type: string
+            enum: [name, created_at]
+            default: created_at
+        - name: direction
+          in: query
+          description: Sort direction. Defaults to `desc`.
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: Results per page. The server-enforced maximum is 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Tenant-scoped paginated Candidates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+    post:
+      operationId: createCandidate
+      summary: Create a candidate in an organisation
+      description: |
+        Creates a Candidate owned by the trusted route Organisation. The server
+        derives `organisation_id` from TenantContext and does not accept ownership
+        fields from the client. Admin and Recruiter roles may create Candidates.
+      tags:
+        - Candidate
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCandidateRequest"
+      responses:
+        "201":
+          description: The Candidate was created in the route Organisation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/candidates/{candidate}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+    get:
+      operationId: getCandidate
+      summary: Get a tenant-scoped candidate
+      description: |
+        Resolves the Candidate using both the trusted Organisation identifier and
+        Candidate identifier. A Candidate from another Organisation and a missing
+        Candidate return the same `404` response. All active roles may view.
+      tags:
+        - Candidate
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: The tenant-scoped Candidate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/CandidateNotFound"
+    patch:
+      operationId: updateCandidate
+      summary: Update a tenant-scoped candidate
+      description: |
+        Partially updates a Candidate resolved within the trusted route Organisation.
+        Ownership and timestamps cannot be changed. Admin and Recruiter roles may
+        update; Hiring Managers receive `403`.
+      tags:
+        - Candidate
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCandidateRequest"
+      responses:
+        "200":
+          description: The Candidate was updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CandidateNotFound"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
   /organisations/{organisation}/invitations:
     parameters:
       - $ref: "#/components/parameters/OrganisationId"
@@ -655,6 +823,15 @@ components:
         type: integer
         format: int64
         minimum: 1
+    CandidateId:
+      name: candidate
+      in: path
+      required: true
+      description: Candidate identifier resolved only within the trusted route Organisation.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     XsrfToken:
       name: X-XSRF-TOKEN
       in: header
@@ -702,6 +879,15 @@ components:
         The organisation is nonexistent or is not available through an active
         membership for the authenticated user. These cases are intentionally
         indistinguishable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundError"
+    CandidateNotFound:
+      description: |
+        The Candidate does not exist within the trusted route Organisation. A
+        cross-tenant Candidate identifier and a nonexistent identifier are
+        intentionally indistinguishable.
       content:
         application/json:
           schema:
@@ -932,6 +1118,213 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Organisation"
+    Candidate:
+      type: object
+      additionalProperties: false
+      description: A Candidate record owned by the route Organisation.
+      required:
+        - id
+        - first_name
+        - last_name
+        - email
+        - phone
+        - occupation
+        - location
+        - availability
+        - notes
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type:
+            - string
+            - "null"
+          format: email
+          maxLength: 255
+          description: Candidate contact email, trimmed and lowercased when present. It is not an Identity account and is not unique.
+        phone:
+          type:
+            - string
+            - "null"
+          maxLength: 50
+        occupation:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        location:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        availability:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        notes:
+          type:
+            - string
+            - "null"
+          maxLength: 5000
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CandidateResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          $ref: "#/components/schemas/Candidate"
+    CandidatePaginationLinks:
+      type: object
+      additionalProperties: false
+      required:
+        - first
+        - last
+        - prev
+        - next
+      properties:
+        first:
+          type: string
+          format: uri
+        last:
+          type: string
+          format: uri
+        prev:
+          type:
+            - string
+            - "null"
+          format: uri
+        next:
+          type:
+            - string
+            - "null"
+          format: uri
+    CandidatePaginationMeta:
+      type: object
+      additionalProperties: false
+      required:
+        - current_page
+        - from
+        - last_page
+        - path
+        - per_page
+        - to
+        - total
+      properties:
+        current_page:
+          type: integer
+          minimum: 1
+        from:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        last_page:
+          type: integer
+          minimum: 1
+        path:
+          type: string
+          format: uri
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+        to:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+    CandidateListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - links
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Candidate"
+        links:
+          $ref: "#/components/schemas/CandidatePaginationLinks"
+        meta:
+          $ref: "#/components/schemas/CandidatePaginationMeta"
+    CandidateWritableFields:
+      type: object
+      additionalProperties: false
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type:
+            - string
+            - "null"
+          format: email
+          maxLength: 255
+          description: Trimmed and lowercased before persistence. Duplicate Candidate emails are allowed.
+        phone:
+          type:
+            - string
+            - "null"
+          maxLength: 50
+        occupation:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        location:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        availability:
+          type:
+            - string
+            - "null"
+          maxLength: 255
+        notes:
+          type:
+            - string
+            - "null"
+          maxLength: 5000
+    CreateCandidateRequest:
+      allOf:
+        - $ref: "#/components/schemas/CandidateWritableFields"
+        - type: object
+          required:
+            - first_name
+            - last_name
+    UpdateCandidateRequest:
+      $ref: "#/components/schemas/CandidateWritableFields"
     OrganisationInvitation:
       type: object
       additionalProperties: false
@@ -1245,5 +1638,7 @@ tags:
     description: First-party stateful SPA identity and password lifecycle operations.
   - name: Organisation
     description: Organisation and active membership foundation operations.
+  - name: Candidate
+    description: Tenant-owned Candidate creation, discovery, and profile operations.
   - name: System
     description: Operational endpoints for the CareMatch API.

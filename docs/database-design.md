@@ -162,14 +162,18 @@ Initial fields:
 - `notes`, nullable
 - `created_at`
 - `updated_at`
-- `deleted_at`, if soft deletion is adopted
 
 Constraints:
 
-- foreign key to `organisations`
+- non-cascading foreign key to `organisations`
 - unique `(organisation_id, id)` for composite tenant foreign keys
+- NOT NULL `organisation_id`, `first_name` and `last_name`
+
+Phase 3A bounds first and last names at 100 characters, phone at 50, email and the remaining short profile fields at 255, and notes at 5,000 characters through the API. Candidate email is trimmed and lowercased before persistence but is not an Identity email and does not create or link an Identity user.
 
 Whether normalised candidate email is unique within an organisation remains a product decision. Do not add that constraint until duplicate handling is agreed.
+
+Candidate deletion, archival and soft deletion remain deferred until retention requirements are resolved. Phase 3A creates no `deleted_at` column.
 
 ### `candidate_documents`
 
@@ -312,6 +316,8 @@ Expected indexes:
 - `candidate_documents(organisation_id, candidate_id, created_at)`
 
 Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text, trigram and PostGIS indexes are deferred until measured requirements justify them.
+
+The Phase 3A Candidate list uses the two Candidate indexes above for tenant/date and tenant/name access patterns. Occupation filtering is implemented, but an additional occupation index is deferred until representative production cardinality and query plans demonstrate a benefit. Simple substring `ILIKE` search remains intentionally unindexed for the MVP dataset; trigram and full-text indexes are not introduced speculatively.
 
 ## 7. Transactions and Concurrency
 

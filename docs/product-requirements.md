@@ -146,6 +146,10 @@ Uploaded documents are included in portfolio-ready v1.0 but are private and avai
 
 Structured skills and employment history are excluded from the first Candidate vertical slice. Their inclusion later in v1.0 remains an open scope decision.
 
+Phase 3A implements Candidate creation, listing, detail and editing as tenant-owned operations. Candidate ownership is always derived from the request-scoped `TenantContext`; the API does not accept `organisation_id`. All active roles may list and view Candidates, while only Admin and Recruiter memberships may create or edit them. Nested Candidate identifiers are resolved by Organisation and Candidate ID together so cross-tenant and nonexistent Candidates share the same `404` response.
+
+Candidate lists support case-insensitive literal substring search across name and email, exact occupation filtering, allow-listed name or creation-date sorting, and pagination with a default of 20 and maximum of 100 records per page. Candidate email is trimmed and lowercased when present, but it is not an Identity account email and is not unique. Duplicate handling remains an open product decision. Candidate deletion, documents, structured skills and employment history are not part of Phase 3A.
+
 ## 9. Job Information
 
 Initial jobs support:
