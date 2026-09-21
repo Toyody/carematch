@@ -118,7 +118,9 @@ Phase 2-B2 implements this boundary for Organisation detail and settings routes.
 
 The resolver does not first expose a globally bound Organisation model. Nonexistent Organisations, missing memberships and deactivated memberships therefore fail through the same `404` path. Once active tenant access is established, Laravel Policies return `403` when the persisted role lacks permission.
 
-Phase 3A implements the first nested tenant-owned resource without globally binding its Eloquent model. Candidate detail and update Actions pass the trusted `TenantContext.organisationId` and numeric route Candidate ID to focused persistence ports; Infrastructure resolves them with one `organisation_id = ? AND id = ?` query. A cross-tenant Candidate ID and nonexistent Candidate therefore return the same `404`. Candidate creation takes ownership only from `TenantContext`, while Candidate Policy abilities allow every active role to view and restrict create/update to Admin and Recruiter. Recruitment nested-resource resolution remains deferred to its own vertical slice.
+Phase 3A implements the first nested tenant-owned resource without globally binding its Eloquent model. Candidate detail and update Actions pass the trusted `TenantContext.organisationId` and numeric route Candidate ID to focused persistence ports; Infrastructure resolves them with one `organisation_id = ? AND id = ?` query. A cross-tenant Candidate ID and nonexistent Candidate therefore return the same `404`. Candidate creation takes ownership only from `TenantContext`, while Candidate Policy abilities allow every active role to view and restrict create/update to Admin and Recruiter.
+
+Phase 3B applies the same resolution pattern to Recruitment Jobs. Job Application Actions receive `TenantContext` explicitly and depend on focused create, list, detail, update and lifecycle ports; they do not import Laravel HTTP or Eloquent. Infrastructure scopes every nested Job query by both trusted Organisation ID and Job ID. Job lifecycle rules are a small framework-independent `JobStatus` enum rather than a column-mirroring aggregate. Admin and Recruiter may write; Hiring Manager is read-only. Profile update input excludes `status`, and the three server-selected lifecycle endpoints are the only normal status mutation paths.
 
 Client-supplied `organisation_id` does not determine ownership. Create operations use the trusted tenant context.
 
@@ -152,6 +154,12 @@ Phase 2-B4 adds frontend Organisation selection. The route `/organisations/{orga
 
 Phase 3A extends that URL model with `/organisations/{organisation}/candidates` and `/organisations/{organisation}/candidates/{candidate}`. Candidate list query state lives in the URL; Candidate data is not stored globally and is keyed to the authenticated user and route identifiers while displayed. Frontend role checks only shape create/edit controls and never replace backend Policy enforcement.
 
+Phase 3B adds the equivalent Job routes and keeps Job list filters, sort and page
+in the URL. Loaded Job state is keyed by authenticated user, Organisation and Job
+route identifiers. The shared credentialed fetch/CSRF client remains the only
+browser transport; frontend role and status checks shape controls but backend
+middleware, Policies, tenant-scoped queries and Domain rules remain authoritative.
+
 ## 8. Transaction Boundaries
 
 The Application layer defines atomic use cases; Infrastructure supplies the Laravel/PostgreSQL transaction implementation.
@@ -161,6 +169,7 @@ The following operations are single database transactions:
 - reset a password, rotate the remember token and invalidate the user's existing sessions
 - create an organisation and its initial Admin membership
 - accept an invitation and create or activate its membership
+- transition a Job after locking and re-reading its tenant-scoped current row
 - create an application and its initial status-history entry
 - change an application status and append its status-history entry
 - any future operation that records multiple writes as one business decision
@@ -170,6 +179,13 @@ Phase 2-A continues to use Laravel Password Broker's standard reset sequence: to
 Invitation acceptance is stricter: Infrastructure starts one transaction, uses a non-locking token-hash lookup only to identify the parent Organisation, locks that Organisation row and then locks and revalidates the invitation row. It validates the unresolved and unexpired state plus canonical recipient email, locks any existing membership, creates or reactivates the membership with the persisted invitation role, and then sets `accepted_at`. Concurrent or sequential reuse observes the locked, consumed invitation and fails safely. Any membership write failure rolls back `accepted_at`.
 
 Membership role changes and deactivation lock the Organisation row first, then lock the actor and target membership rows in ascending membership-ID order. While holding the Organisation lock, Infrastructure revalidates the actor, evaluates whether another active Admin would remain, and applies the mutation. This serialises Admin-removing decisions for one Organisation and prevents two concurrent requests from each observing the other Admin before both remove Admin status. Invitation creation now uses `Organisation -> invitation -> membership`; invitation acceptance performs a non-locking token lookup and then uses `Organisation -> invitation -> membership`. This common root ordering avoids a lock cycle with membership management. Membership listing takes a shared Organisation lock while rechecking the persisted actor and reading the tenant membership set.
+
+Job lifecycle mutation starts a database transaction, resolves the Job by trusted
+Organisation and Job IDs with `FOR UPDATE`, evaluates the transition against the
+locked persisted status, and writes the new status. This serialises competing
+transitions and makes a later incompatible request fail with `409` instead of
+silently overwriting. Profile editing uses a separate path and cannot mutate
+status; opening and closing do not implicitly rewrite profile dates.
 
 Application status changes use a row lock or explicit version check so concurrent changes cannot silently overwrite each other.
 

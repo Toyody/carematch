@@ -92,7 +92,7 @@ Exit criteria:
 - [x] Transactional last-active-Admin protection
 - [x] Laravel Policies and active-membership tenant route resolution for Organisation routes
 - [x] Tenant-aware Candidate lookup for nested Organisation routes
-- [ ] Tenant-aware nested resource binding for Recruitment routes
+- [x] Tenant-aware nested resource resolution for Recruitment Job routes
 
 ### Isolation verification
 
@@ -122,12 +122,12 @@ Exit criteria:
 
 ### Jobs
 
-- [ ] Job creation and editing
-- [ ] Job listing and details
-- [ ] Draft, Open, Closed and Archived lifecycle
-- [ ] Search, filtering, sorting and pagination
-- [ ] Job state-rule tests
-- [ ] Job authorisation and tenant-isolation tests
+- [x] Job creation and editing
+- [x] Job listing and details
+- [x] Draft, Open, Closed and Archived lifecycle
+- [x] Search, filtering, sorting and pagination
+- [x] Job state-rule tests
+- [x] Job authorisation and tenant-isolation tests
 
 Exit criteria:
 

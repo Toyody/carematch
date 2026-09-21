@@ -165,6 +165,22 @@ Initial jobs support:
 
 Salary/hourly rate and structured required skills remain open product and data-modelling decisions and are excluded from the first Job vertical slice.
 
+Phase 3B implements Job creation, paginated listing, detail, profile editing and
+explicit lifecycle operations as tenant-owned Recruitment features. Ownership is
+derived only from `TenantContext`; client-supplied ownership, user or role fields
+cannot select a tenant. All active roles may list and view Jobs. Admin and
+Recruiter may create, edit, open, close, reopen and archive Jobs; Hiring Manager
+is read-only. New Jobs always start in Draft, and normal profile editing cannot
+change status.
+
+Nested Job identifiers are always resolved with the trusted Organisation ID, so
+cross-tenant and nonexistent Jobs share `404` semantics. Invalid lifecycle
+transitions return a stable `409`. Lifecycle changes do not automatically change
+the optional opening or closing profile dates. Job lists use literal
+case-insensitive title search, exact status/occupation/employment-type filters,
+allow-listed opening-date or creation-date sorting, deterministic null ordering,
+and pagination of 20 by default with a maximum of 100.
+
 ## 10. Search, Filtering and Pagination
 
 Each list endpoint documents an allow-list of filters and sorts. Unknown filters are rejected rather than interpreted dynamically.
@@ -174,7 +190,7 @@ Initial behaviour:
 - Candidates: search by name and email; filter by occupation; sort by name or creation date.
 - Jobs: search by title; filter by status, occupation and employment type; sort by opening or creation date.
 - Applications: filter by job, candidate and status; sort by applied or updated date.
-- Pagination has a server-enforced maximum page size.
+- Pagination defaults to 20 and has a server-enforced maximum page size of 100.
 
 Fuzzy search, full-text ranking, PostGIS and advanced matching are not MVP requirements.
 

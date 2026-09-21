@@ -18,3 +18,7 @@ Route::prefix('v1')->group(
 Route::prefix('v1')->group(
     base_path('app/Modules/Candidate/Interfaces/Http/routes.php'),
 );
+
+Route::prefix('v1')->group(
+    base_path('app/Modules/Recruitment/Interfaces/Http/routes.php'),
+);

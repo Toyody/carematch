@@ -197,6 +197,10 @@ h1 {
   width: min(100%, 56rem);
 }
 
+.job-card {
+  width: min(100%, 60rem);
+}
+
 .candidate-heading {
   display: flex;
   align-items: start;
@@ -212,11 +216,22 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.job-filters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .candidate-filters button {
   align-self: end;
 }
 
 .candidate-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  list-style: none;
+}
+
+.job-list {
   display: grid;
   gap: 0.75rem;
   margin: 1.5rem 0;
@@ -230,6 +245,25 @@ h1 {
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
+}
+
+.job-list li {
+  display: grid;
+  grid-template-columns: minmax(12rem, 2fr) repeat(4, minmax(7rem, 1fr));
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.job-list span {
+  color: var(--muted);
+}
+
+.job-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
 }
 
 .candidate-list span {
@@ -262,7 +296,9 @@ h1 {
 
 @media (max-width: 42rem) {
   .candidate-filters,
-  .candidate-list li {
+  .candidate-list li,
+  .job-filters,
+  .job-list li {
     grid-template-columns: 1fr;
   }
 }
