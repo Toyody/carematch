@@ -72,6 +72,9 @@ describe("OrganisationWorkspace", () => {
       "href",
       `/organisations/${northside.id}/jobs`,
     );
+    expect(
+      screen.getByRole("link", { name: "Manage applications" }),
+    ).toHaveAttribute("href", `/organisations/${northside.id}/applications`);
     expect(getOrganisation).toHaveBeenCalledWith(northside.id);
     expect(listOrganisations).toHaveBeenCalledTimes(1);
   });

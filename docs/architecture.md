@@ -160,6 +160,24 @@ route identifiers. The shared credentialed fetch/CSRF client remains the only
 browser transport; frontend role and status checks shape controls but backend
 middleware, Policies, tenant-scoped queries and Domain rules remain authoritative.
 
+Phase 4A extends Recruitment with Application creation, listing, and read-only
+detail routes. Recruitment never imports Candidate Eloquent persistence. It
+uses the batch-capable `CandidateReferenceLookup` Application contract for
+tenant-scoped Candidate existence and compact name summaries. Application list
+enrichment performs one Candidate batch query rather than one lookup per row.
+Job summaries remain internal to Recruitment and are selected in the
+tenant-scoped Application query.
+
+Application ownership and actor identity come only from `TenantContext`.
+Nested Application detail uses Organisation and Application ID together, while
+creation locks a Job using Organisation and Job ID together before checking the
+persisted Open status. Composite PostgreSQL foreign keys independently prevent
+cross-tenant Candidate, Job, and actor references. Phase 4A deliberately exposes
+no status mutation endpoint; the framework-independent `ApplicationStatus` enum
+defines persisted vocabulary only, not the deferred Phase 4B transition graph.
+Frontend Application state is keyed by authenticated user and route identifiers,
+with filters and pagination stored in the URL.
+
 ## 8. Transaction Boundaries
 
 The Application layer defines atomic use cases; Infrastructure supplies the Laravel/PostgreSQL transaction implementation.
@@ -186,6 +204,15 @@ locked persisted status, and writes the new status. This serialises competing
 transitions and makes a later incompatible request fail with `409` instead of
 silently overwriting. Profile editing uses a separate path and cannot mutate
 status; opening and closing do not implicitly rewrite profile dates.
+
+Application creation uses the same Job-row lock as Job lifecycle transitions.
+Inside one transaction it resolves and locks the tenant-scoped Job, confirms its
+persisted status is Open, validates the Candidate through the Candidate module's
+Application contract, inserts the Application, and appends the initial
+`null -> applied` history row. Competing close/archive and create operations are
+therefore serialised on the same Job row. Concurrent duplicate creation is
+settled by the named `(organisation_id, job_id, candidate_id)` unique constraint;
+only that constraint is translated to the duplicate-Application `409` contract.
 
 Application status changes use a row lock or explicit version check so concurrent changes cannot silently overwrite each other.
 

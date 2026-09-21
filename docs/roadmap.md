@@ -137,12 +137,12 @@ Exit criteria:
 
 ## Phase 4 — Applications and Recruitment Pipeline
 
-- [ ] Cross-tenant-safe Application schema and composite foreign keys
-- [ ] Application creation for an Open job
-- [ ] Duplicate candidate/job prevention
-- [ ] Application listing and details
+- [x] Cross-tenant-safe Application schema and composite foreign keys
+- [x] Application creation for an Open job
+- [x] Duplicate candidate/job prevention
+- [x] Application listing and details
 - [ ] Domain-level status-transition rules
-- [ ] Immutable application status history
+- [x] Immutable application status history foundation and initial Applied entry
 - [ ] Atomic status update and history append
 - [ ] Concurrent-update protection
 - [ ] Role-based transition authorisation

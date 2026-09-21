@@ -266,6 +266,13 @@ Constraints:
 
 Repeat applications by the same candidate to the same job are not supported in the MVP.
 
+Phase 4A creates Applications only with status `applied` and a server-controlled
+UTC `applied_at`. All foreign keys use restrictive deletion. The composite Job,
+Candidate, and creator-membership foreign keys make cross-tenant references
+invalid even if application validation is bypassed. Application and initial
+history creation share one transaction, and the Job row is locked before its
+persisted Open state is evaluated.
+
 ### `application_status_history`
 
 Immutable recruitment-pipeline history.
@@ -315,8 +322,11 @@ Expected indexes:
 - `candidates(organisation_id, created_at)`
 - `candidates(organisation_id, last_name, first_name)`
 - `jobs(organisation_id, status, created_at)`
-- `applications(organisation_id, job_id, status)`
+- unique `applications(organisation_id, job_id, candidate_id)`
 - `applications(organisation_id, candidate_id)`
+- `applications(organisation_id, status, applied_at, id)`
+- `applications(organisation_id, applied_at, id)`
+- `applications(organisation_id, updated_at, id)`
 - `application_status_history(organisation_id, application_id, created_at)`
 - `candidate_documents(organisation_id, candidate_id, created_at)`
 
@@ -330,6 +340,16 @@ optional occupation, employment-type and opening-date paths remain unindexed in
 the initial MVP: PostgreSQL plans were inspected against representative local
 data, and additional or trigram indexes are deferred until production volume and
 selectivity justify their write/storage cost.
+
+The Phase 4A Application indexes support duplicate/Job lookup, Candidate and
+status filters, and deterministic applied/updated sorting. Representative
+PostgreSQL `EXPLAIN ANALYZE` plans were reviewed with 5,000 temporary rows. The
+tenant applied-time list used `(organisation_id, applied_at, id)`, status lists
+used `(organisation_id, status, applied_at, id)`, Candidate filters used
+`(organisation_id, candidate_id)`, updated-time sorting used
+`(organisation_id, updated_at, id)`, and Job filters used the duplicate-prevention
+unique index before a small bounded sort. No additional Phase 4A index was
+justified; temporary plan data was rolled back.
 
 ## 7. Transactions and Concurrency
 
