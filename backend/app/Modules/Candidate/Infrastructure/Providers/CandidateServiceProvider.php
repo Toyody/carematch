@@ -5,10 +5,12 @@ namespace App\Modules\Candidate\Infrastructure\Providers;
 use App\Modules\Candidate\Application\Contracts\CandidateCreator;
 use App\Modules\Candidate\Application\Contracts\CandidateDetails;
 use App\Modules\Candidate\Application\Contracts\CandidateLister;
+use App\Modules\Candidate\Application\Contracts\CandidateReferenceLookup;
 use App\Modules\Candidate\Application\Contracts\CandidateUpdater;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateCreator;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateDetails;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateLister;
+use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateReferenceLookup;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateUpdater;
 use App\Modules\Candidate\Interfaces\Authorization\CandidatePolicy;
 use App\Modules\Organisation\Application\Data\TenantContext;
@@ -24,6 +26,7 @@ final class CandidateServiceProvider extends ServiceProvider
         $this->app->bind(CandidateLister::class, EloquentCandidateLister::class);
         $this->app->bind(CandidateDetails::class, EloquentCandidateDetails::class);
         $this->app->bind(CandidateUpdater::class, EloquentCandidateUpdater::class);
+        $this->app->bind(CandidateReferenceLookup::class, EloquentCandidateReferenceLookup::class);
     }
 
     public function boot(CandidatePolicy $policy): void

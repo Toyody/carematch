@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.8.0
+  version: 0.9.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -17,6 +17,8 @@ info:
     tenant-owned controllers run. Phase 3A applies that boundary to Candidate
     resources and scopes every nested Candidate identifier to its route Organisation.
     Phase 3B applies the same boundary to Job profiles and their explicit lifecycle.
+    Phase 4A adds tenant-safe Applications connecting an Open Job to a Candidate,
+    with atomic initial status-history persistence.
   license:
     name: All rights reserved
 servers:
@@ -706,6 +708,108 @@ paths:
         "409": { $ref: "#/components/responses/JobTransitionConflict" }
         "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
         "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/applications:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: listApplications
+      summary: List applications in an organisation
+      description: |
+        Returns a bounded tenant-scoped page enriched with compact Candidate and
+        Job summaries. All active roles may list Applications. Query parameters
+        are allow-listed and unsupported parameters are rejected.
+      tags: [Application]
+      security:
+        - StatefulSession: []
+      parameters:
+        - name: job_id
+          in: query
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: candidate_id
+          in: query
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/ApplicationStatus" }
+        - name: sort
+          in: query
+          schema:
+            {
+              type: string,
+              enum: [applied_at, updated_at],
+              default: applied_at,
+            }
+        - name: direction
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Tenant-scoped paginated Applications.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationListResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+    post:
+      operationId: createApplication
+      summary: Create an application for an open job
+      description: |
+        Creates an `applied` Application and its initial status-history entry in
+        one transaction. Organisation and actor come from trusted TenantContext.
+        The Candidate and locked Job must belong to that Organisation, and the
+        Job must still be `open`. Repeated Candidate/Job applications are not
+        supported. Admin and Recruiter roles may create; status is not client-settable.
+      tags: [Application]
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateApplicationRequest" }
+      responses:
+        "201":
+          description: The Application and initial Applied history entry were created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/ApplicationTargetNotFound" }
+        "409": { $ref: "#/components/responses/ApplicationCreationConflict" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/applications/{application}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/ApplicationId"
+    get:
+      operationId: getApplication
+      summary: Get a tenant-scoped application
+      description: |
+        Resolves by trusted Organisation and Application ID together. A cross-tenant
+        identifier and a nonexistent identifier have identical `404` semantics.
+        All active roles may view. Phase 4A provides no generic edit or status endpoint.
+      tags: [Application]
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: The tenant-scoped Application.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/ApplicationNotFound" }
   /organisations/{organisation}/invitations:
     parameters:
       - $ref: "#/components/parameters/OrganisationId"
@@ -1038,6 +1142,15 @@ components:
         type: integer
         format: int64
         minimum: 1
+    ApplicationId:
+      name: application
+      in: path
+      required: true
+      description: Application identifier resolved only within the trusted route Organisation.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     XsrfToken:
       name: X-XSRF-TOKEN
       in: header
@@ -1110,6 +1223,22 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/JobTransitionConflictError" }
+    ApplicationNotFound:
+      description: A cross-tenant and a nonexistent Application identifier are intentionally indistinguishable.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/NotFoundError" }
+    ApplicationTargetNotFound:
+      description: The Job or Candidate does not exist within the trusted route Organisation.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/NotFoundError" }
+    ApplicationCreationConflict:
+      description: The locked Job is not Open, or the Candidate already has an Application for the Job.
+      content:
+        application/json:
+          schema:
+            { $ref: "#/components/schemas/ApplicationCreationConflictError" }
     InvitationNotFound:
       description: The invitation does not exist within the trusted route organisation.
       content:
@@ -1635,6 +1764,75 @@ components:
           required: [title]
     UpdateJobRequest:
       $ref: "#/components/schemas/JobWritableFields"
+    ApplicationStatus:
+      type: string
+      enum: [applied, screening, interview, offer, hired, rejected]
+      description: Phase 4A creates only `applied`; lifecycle transitions are deferred to Phase 4B.
+    ApplicationJobSummary:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+    ApplicationCandidateSummary:
+      type: object
+      additionalProperties: false
+      required: [id, first_name, last_name]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        first_name: { type: string, minLength: 1, maxLength: 100 }
+        last_name: { type: string, minLength: 1, maxLength: 100 }
+    Application:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          job,
+          candidate,
+          status,
+          applied_at,
+          created_by_user_id,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        job: { $ref: "#/components/schemas/ApplicationJobSummary" }
+        candidate: { $ref: "#/components/schemas/ApplicationCandidateSummary" }
+        status: { $ref: "#/components/schemas/ApplicationStatus" }
+        applied_at: { type: string, format: date-time }
+        created_by_user_id: { type: integer, format: int64, minimum: 1 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ApplicationResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/Application" }
+    ApplicationPaginationLinks:
+      $ref: "#/components/schemas/JobPaginationLinks"
+    ApplicationPaginationMeta:
+      $ref: "#/components/schemas/JobPaginationMeta"
+    ApplicationListResponse:
+      type: object
+      additionalProperties: false
+      required: [data, links, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Application" }
+        links: { $ref: "#/components/schemas/ApplicationPaginationLinks" }
+        meta: { $ref: "#/components/schemas/ApplicationPaginationMeta" }
+    CreateApplicationRequest:
+      type: object
+      additionalProperties: false
+      required: [job_id, candidate_id]
+      properties:
+        job_id: { type: integer, format: int64, minimum: 1 }
+        candidate_id: { type: integer, format: int64, minimum: 1 }
     OrganisationInvitation:
       type: object
       additionalProperties: false
@@ -1924,6 +2122,16 @@ components:
         message:
           type: string
           const: The requested job status transition is not allowed.
+    ApplicationCreationConflictError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          enum:
+            - Applications may only be created for an open job.
+            - This candidate already has an application for this job.
     RateLimitError:
       type: object
       additionalProperties: false
