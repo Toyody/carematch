@@ -9,6 +9,7 @@ import {
   listOrganisations,
   type Organisation,
 } from "./api";
+import { OrganisationSelector } from "./organisation-selector";
 
 export function OrganisationPanel() {
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
@@ -81,17 +82,10 @@ export function OrganisationPanel() {
         <p role="alert">Unable to load your organisations. Please try again.</p>
       ) : null}
       {!isLoading && !loadError && organisations.length === 0 ? (
-        <p>You do not belong to an organisation yet.</p>
+        <OrganisationSelector organisations={organisations} />
       ) : null}
       {organisations.length > 0 ? (
-        <ul className="organisation-list">
-          {organisations.map((organisation) => (
-            <li key={organisation.id}>
-              <span>{organisation.name}</span>
-              <span>{organisation.membership.role}</span>
-            </li>
-          ))}
-        </ul>
+        <OrganisationSelector organisations={organisations} />
       ) : null}
 
       <form onSubmit={handleSubmit}>

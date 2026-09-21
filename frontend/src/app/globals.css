@@ -164,7 +164,29 @@ h1 {
   border-radius: 0.5rem;
 }
 
+.organisation-list li[data-current="true"] {
+  border-width: 2px;
+  border-color: var(--success);
+}
+
+.organisation-list a[aria-current="page"] {
+  font-weight: 700;
+}
+
 .organisation-list li span:last-child {
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+.workspace-card {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.workspace-card h1 {
+  margin-bottom: 0.5rem;
+}
+
+.workspace-card h2 {
+  font-size: 1.125rem;
 }

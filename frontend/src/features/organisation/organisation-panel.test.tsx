@@ -66,6 +66,9 @@ describe("Organisation panel", () => {
     );
 
     expect(await screen.findByText(organisation.name)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: organisation.name }),
+    ).toHaveAttribute("href", `/organisations/${organisation.id}`);
     expect(createOrganisation).toHaveBeenCalledWith({
       name: organisation.name,
     });

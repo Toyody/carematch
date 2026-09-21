@@ -41,6 +41,14 @@ export async function listOrganisations(): Promise<Organisation[]> {
   return response.data;
 }
 
+export async function getOrganisation(id: number): Promise<Organisation> {
+  const response = await apiRequest<OrganisationResponse>(
+    `/organisations/${id}`,
+  );
+
+  return response.data;
+}
+
 export function acceptOrganisationInvitation(token: string): Promise<void> {
   return apiRequest<void>("/organisation-invitations/accept", {
     body: { token },
