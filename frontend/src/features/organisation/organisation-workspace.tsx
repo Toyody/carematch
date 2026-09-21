@@ -154,6 +154,9 @@ export function OrganisationWorkspace({
             <p>
               Your role: <strong>{organisation.membership.role}</strong>
             </p>
+            <Link href={`/organisations/${organisationId}/candidates`}>
+              Manage candidates
+            </Link>
           </header>
         ) : null}
 

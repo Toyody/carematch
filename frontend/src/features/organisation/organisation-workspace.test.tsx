@@ -65,6 +65,9 @@ describe("OrganisationWorkspace", () => {
       await screen.findByRole("heading", { name: northside.name }),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/admin/)).toHaveLength(2);
+    expect(
+      screen.getByRole("link", { name: "Manage candidates" }),
+    ).toHaveAttribute("href", `/organisations/${northside.id}/candidates`);
     expect(getOrganisation).toHaveBeenCalledWith(northside.id);
     expect(listOrganisations).toHaveBeenCalledTimes(1);
   });

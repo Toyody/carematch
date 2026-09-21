@@ -12,7 +12,7 @@ interface ErrorPayload {
 
 interface RequestOptions {
   body?: unknown;
-  method?: "GET" | "POST";
+  method?: "GET" | "PATCH" | "POST";
   withCsrf?: boolean;
 }
 

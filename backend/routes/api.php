@@ -14,3 +14,7 @@ Route::prefix('v1')->group(
 Route::prefix('v1')->group(
     base_path('app/Modules/Organisation/Interfaces/Http/routes.php'),
 );
+
+Route::prefix('v1')->group(
+    base_path('app/Modules/Candidate/Interfaces/Http/routes.php'),
+);

@@ -91,7 +91,8 @@ Exit criteria:
 - [x] Fixed membership roles enforced in the membership foundation schema
 - [x] Transactional last-active-Admin protection
 - [x] Laravel Policies and active-membership tenant route resolution for Organisation routes
-- [ ] Tenant-aware nested resource binding for Candidate and Recruitment routes
+- [x] Tenant-aware Candidate lookup for nested Organisation routes
+- [ ] Tenant-aware nested resource binding for Recruitment routes
 
 ### Isolation verification
 
@@ -112,12 +113,12 @@ Exit criteria:
 
 ### Candidates
 
-- [ ] Candidate creation
-- [ ] Candidate listing and details
-- [ ] Candidate editing
-- [ ] Search, filtering, sorting and pagination
-- [ ] Candidate validation and authorisation tests
-- [ ] Candidate tenant-isolation tests
+- [x] Candidate creation
+- [x] Candidate listing and details
+- [x] Candidate editing
+- [x] Search, filtering, sorting and pagination
+- [x] Candidate validation and authorisation tests
+- [x] Candidate tenant-isolation tests
 
 ### Jobs
 

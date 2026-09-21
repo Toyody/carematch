@@ -75,7 +75,9 @@ form {
   margin: 1.5rem 0;
 }
 
-input {
+input,
+select,
+textarea {
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
@@ -189,4 +191,78 @@ h1 {
 
 .workspace-card h2 {
   font-size: 1.125rem;
+}
+
+.candidate-card {
+  width: min(100%, 56rem);
+}
+
+.candidate-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.candidate-heading h1 {
+  margin-bottom: 0.25rem;
+}
+
+.candidate-filters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.candidate-filters button {
+  align-self: end;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  list-style: none;
+}
+
+.candidate-list li {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(12rem, 1fr) minmax(8rem, 1fr);
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.candidate-list span {
+  color: var(--muted);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.candidate-details {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.candidate-details div {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 1rem;
+}
+
+.candidate-details dt {
+  font-weight: 700;
+}
+
+@media (max-width: 42rem) {
+  .candidate-filters,
+  .candidate-list li {
+    grid-template-columns: 1fr;
+  }
 }
