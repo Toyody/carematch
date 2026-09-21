@@ -3,6 +3,7 @@
 use App\Modules\Candidate\Infrastructure\Providers\CandidateServiceProvider;
 use App\Modules\Identity\Infrastructure\Providers\IdentityServiceProvider;
 use App\Modules\Organisation\Infrastructure\Providers\OrganisationServiceProvider;
+use App\Modules\Recruitment\Infrastructure\Providers\RecruitmentServiceProvider;
 use App\Providers\AppServiceProvider;
 
 return [
@@ -10,4 +11,5 @@ return [
     IdentityServiceProvider::class,
     OrganisationServiceProvider::class,
     CandidateServiceProvider::class,
+    RecruitmentServiceProvider::class,
 ];

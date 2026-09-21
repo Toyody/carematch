@@ -157,6 +157,9 @@ export function OrganisationWorkspace({
             <Link href={`/organisations/${organisationId}/candidates`}>
               Manage candidates
             </Link>
+            <Link href={`/organisations/${organisationId}/jobs`}>
+              Manage jobs
+            </Link>
           </header>
         ) : null}
 

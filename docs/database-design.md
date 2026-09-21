@@ -191,7 +191,6 @@ Fields:
 - `uploaded_by_user_id`
 - `created_at`
 - `updated_at`
-- `deleted_at`, if soft deletion is adopted
 
 Constraints:
 
@@ -233,6 +232,12 @@ Constraints:
 - CHECK that `closes_at` is null or not earlier than `opened_at`
 
 Salary/rate representation and structured required skills remain unresolved and are excluded from the first schema migration.
+
+Phase 3B bounds title at 200 characters, employment type at 100, occupation and
+location at 255, and description at 10,000 through the API. The Organisation
+foreign key uses `RESTRICT`; Jobs have no soft-delete column in this slice. The
+status CHECK and date-order CHECK are database-level final authorities even when
+application validation is bypassed.
 
 ### `applications`
 
@@ -319,6 +324,13 @@ Indexes must be checked against generated SQL and actual list/dashboard queries.
 
 The Phase 3A Candidate list uses the two Candidate indexes above for tenant/date and tenant/name access patterns. Occupation filtering is implemented, but an additional occupation index is deferred until representative production cardinality and query plans demonstrate a benefit. Simple substring `ILIKE` search remains intentionally unindexed for the MVP dataset; trigram and full-text indexes are not introduced speculatively.
 
+The Phase 3B Job list uses `(organisation_id, status, created_at)` for its primary
+tenant/status/date access pattern. Literal substring `ILIKE` title search and
+optional occupation, employment-type and opening-date paths remain unindexed in
+the initial MVP: PostgreSQL plans were inspected against representative local
+data, and additional or trigram indexes are deferred until production volume and
+selectivity justify their write/storage cost.
+
 ## 7. Transactions and Concurrency
 
 The following writes are atomic:
@@ -326,10 +338,16 @@ The following writes are atomic:
 - organisation plus initial Admin membership
 - invitation acceptance plus membership creation or activation
 - membership role changes and deactivation, including last-active-Admin evaluation
+- tenant-scoped Job lifecycle transitions
 - application plus initial status history
 - application status update plus status history append
 
 Application status updates use row locking or an explicit version check. A stale transition fails rather than overwriting a concurrent change.
+
+Job lifecycle transitions lock the tenant-scoped Job row before checking the
+persisted state and updating it. Profile edits cannot change status. Profile date
+updates also lock the Job while evaluating the combined persisted-and-requested
+date range, with the PostgreSQL CHECK constraint as defence in depth.
 
 Membership-management mutations lock the Organisation row before membership rows, making the last-active-Admin check and write one serial decision per Organisation. Invitation creation and acceptance follow the same Organisation-first root lock before taking invitation and membership locks. This prevents concurrent demotion/deactivation operations from leaving zero active Admins and avoids inconsistent lock ordering with invitation membership reactivation.
 
