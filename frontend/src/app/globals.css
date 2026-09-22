@@ -365,6 +365,48 @@ h1 {
   font-weight: 700;
 }
 
+.candidate-documents {
+  display: grid;
+  gap: 0.75rem;
+  margin: 2rem 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.candidate-documents > p {
+  color: var(--muted);
+}
+
+.candidate-document-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.candidate-document-list li,
+.candidate-document-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.candidate-document-list li {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.candidate-document-list li > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.candidate-document-list span {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 @media (max-width: 42rem) {
   .candidate-filters,
   .candidate-list li,
@@ -373,5 +415,10 @@ h1 {
   .job-filters,
   .job-list li {
     grid-template-columns: 1fr;
+  }
+
+  .candidate-document-list li {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

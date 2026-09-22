@@ -1,18 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiRequest } from "@/lib/api/client";
+import { apiDownload, apiRequest, apiRequestForm } from "@/lib/api/client";
 
 import {
   createCandidate,
+  deleteCandidateDocument,
+  downloadCandidateDocument,
   getCandidate,
   listCandidates,
+  listCandidateDocuments,
+  uploadCandidateDocument,
   updateCandidate,
   type Candidate,
   type CandidateInput,
   type CandidatePage,
 } from "./api";
 
-vi.mock("@/lib/api/client", () => ({ apiRequest: vi.fn() }));
+vi.mock("@/lib/api/client", () => ({
+  apiDownload: vi.fn(),
+  apiRequest: vi.fn(),
+  apiRequestForm: vi.fn(),
+}));
 
 const candidate: Candidate = {
   availability: null,
@@ -93,6 +101,66 @@ describe("Candidate API", () => {
         method: "PATCH",
         withCsrf: true,
       },
+    );
+  });
+
+  it("lists tenant and Candidate scoped document metadata", async () => {
+    const documents = [
+      {
+        created_at: "2026-09-24T00:00:00+00:00",
+        id: 3,
+        mime_type: "application/pdf",
+        original_name: "resume.pdf",
+        size_bytes: 1024,
+        updated_at: "2026-09-24T00:00:00+00:00",
+        uploaded_by_user_id: 7,
+      },
+    ];
+    vi.mocked(apiRequest).mockResolvedValue({ data: documents });
+
+    await expect(listCandidateDocuments(11, 9)).resolves.toEqual(documents);
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/organisations/11/candidates/9/documents",
+    );
+  });
+
+  it("uploads multipart through the shared CSRF client", async () => {
+    const document = {
+      created_at: "2026-09-24T00:00:00+00:00",
+      id: 3,
+      mime_type: "application/pdf",
+      original_name: "resume.pdf",
+      size_bytes: 10,
+      updated_at: "2026-09-24T00:00:00+00:00",
+      uploaded_by_user_id: 7,
+    };
+    const file = new File(["pdf"], "resume.pdf", {
+      type: "application/pdf",
+    });
+    vi.mocked(apiRequestForm).mockResolvedValue({ data: document });
+
+    await expect(uploadCandidateDocument(11, 9, file)).resolves.toEqual(
+      document,
+    );
+    const form = vi.mocked(apiRequestForm).mock.calls[0]?.[1];
+    expect(form).toBeInstanceOf(FormData);
+    expect(form?.get("document")).toBe(file);
+  });
+
+  it("downloads binary content and deletes through shared helpers", async () => {
+    const blob = new Blob(["pdf"], { type: "application/pdf" });
+    vi.mocked(apiDownload).mockResolvedValue(blob);
+    vi.mocked(apiRequest).mockResolvedValue(undefined);
+
+    await expect(downloadCandidateDocument(11, 9, 3)).resolves.toBe(blob);
+    await deleteCandidateDocument(11, 9, 3);
+
+    expect(apiDownload).toHaveBeenCalledWith(
+      "/organisations/11/candidates/9/documents/3/download",
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/organisations/11/candidates/9/documents/3",
+      { method: "DELETE", withCsrf: true },
     );
   });
 });

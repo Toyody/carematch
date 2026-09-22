@@ -14,6 +14,10 @@ final class CandidatePolicy
 
     public const string VIEW = 'candidates.view';
 
+    public const string VIEW_DOCUMENTS = 'candidate-documents.view';
+
+    public const string MANAGE_DOCUMENTS = 'candidate-documents.manage';
+
     public function view(Authenticatable $user, TenantContext $tenant): bool
     {
         return $this->matchesAuthenticatedUser($user, $tenant);
@@ -25,6 +29,16 @@ final class CandidatePolicy
     }
 
     public function update(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->mayWrite($user, $tenant);
+    }
+
+    public function viewDocuments(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->view($user, $tenant);
+    }
+
+    public function manageDocuments(Authenticatable $user, TenantContext $tenant): bool
     {
         return $this->mayWrite($user, $tenant);
     }

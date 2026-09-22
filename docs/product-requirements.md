@@ -174,7 +174,7 @@ Structured skills and employment history are excluded from the first Candidate v
 
 Phase 3A implements Candidate creation, listing, detail and editing as tenant-owned operations. Candidate ownership is always derived from the request-scoped `TenantContext`; the API does not accept `organisation_id`. All active roles may list and view Candidates, while only Admin and Recruiter memberships may create or edit them. Nested Candidate identifiers are resolved by Organisation and Candidate ID together so cross-tenant and nonexistent Candidates share the same `404` response.
 
-Candidate lists support case-insensitive literal substring search across name and email, exact occupation filtering, allow-listed name or creation-date sorting, and pagination with a default of 20 and maximum of 100 records per page. Candidate email is trimmed and lowercased when present, but it is not an Identity account email and is not unique. Duplicate handling remains an open product decision. Candidate deletion, documents, structured skills and employment history are not part of Phase 3A.
+Candidate lists support case-insensitive literal substring search across name and email, exact occupation filtering, allow-listed name or creation-date sorting, and pagination with a default of 20 and maximum of 100 records per page. Candidate email is trimmed and lowercased when present, but it is not an Identity account email and is not unique. Duplicate handling remains an open product decision. Candidate deletion, documents, structured skills and employment history are not part of Phase 3A. Phase 5A adds private Candidate documents without adding Candidate deletion.
 
 ## 9. Job Information
 
@@ -231,9 +231,35 @@ Candidate documents:
 - require tenant membership and resource authorisation for upload, download and deletion
 - are downloaded as attachments unless a specifically safe preview is implemented
 
+Phase 5A supports non-empty PDF and DOCX files up to 10 MiB. The backend uses
+server-side content MIME detection and does not trust the original extension or
+browser-supplied MIME. Admin and Recruiter may list, upload, download and delete;
+Hiring Manager may list and download but remains read-only. Every operation is
+nested beneath the trusted Organisation and Candidate. Cross-tenant,
+cross-Candidate and nonexistent document identifiers use the same safe `404`
+semantics.
+
+The local/portfolio MVP stores contents on a dedicated private Laravel disk with
+cryptographically random 32-byte keys encoded as hexadecimal. Original names are
+sanitised attachment/display metadata only. Upload stores content before metadata
+and removes the new object if metadata persistence fails. Deletion removes the
+private object before metadata so a later database failure cannot leave sensitive
+content downloadable through the application.
+
 Real personal information must not be used in demo data. Sensitive fields, document contents, tokens and storage keys must not appear in production application logs. Production HTTP access logging must omit or redact password-reset query strings. Organisation invitation URLs carry the token in a browser fragment, which is not sent to the frontend server or ordinary access logs, and the frontend removes that fragment from the current browser-history entry after reading it. Local development uses `MAIL_MAILER=log` as an email-delivery substitute, so password-reset and Organisation-invitation URLs and their tokens necessarily appear in the local development mail log. That local-only mechanism must not be used as the production mail-delivery strategy.
 
-The malware-scanning approach, retention periods and applicable privacy jurisdiction must be decided before production use.
+Malware scanning is a production prerequisite before real candidate documents
+may be enabled. It is intentionally not simulated in the portfolio MVP; file-type
+allow-listing is not represented as malware scanning. Public/demo environments
+use synthetic documents only. A real deployment must select and integrate a
+scanner, potentially around private object storage, before accepting personal
+documents.
+
+The portfolio MVP has no automatic retention or purge job. Documents remain until
+an authorised Admin or Recruiter explicitly deletes them. Before real candidate
+data is handled, each deployment must define retention periods, deletion duties
+and the applicable privacy jurisdiction. This implementation does not by itself
+claim healthcare or recruitment compliance.
 
 ## 12. Minimal Dashboard
 
@@ -266,6 +292,6 @@ These decisions do not block the local foundation but must be resolved before th
 1. Whether candidate email is unique within an organisation and how duplicate candidates are merged.
 2. Whether structured skills and employment history belong in v1.0.
 3. The salary/rate model, including currency, range and pay period.
-4. The malware-scanning mechanism and behaviour for files awaiting a scan.
-5. Candidate and document retention periods and the governing privacy jurisdiction.
+4. The production malware-scanning provider and behaviour for files awaiting a scan. Scanning remains a prerequisite for real uploads, not an MVP simulation.
+5. Production Candidate/document retention periods and the governing privacy jurisdiction. The portfolio MVP uses explicit deletion only.
 6. Whether an Admin-only correction flow for terminal application statuses is required after MVP.

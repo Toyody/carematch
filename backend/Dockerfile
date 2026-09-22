@@ -13,6 +13,8 @@ RUN apt-get update \
 
 COPY --from=composer:2.10 /usr/bin/composer /usr/local/bin/composer
 
+COPY docker/carematch.ini /usr/local/etc/php/conf.d/carematch.ini
+
 WORKDIR /app
 
 COPY composer.json composer.lock* ./

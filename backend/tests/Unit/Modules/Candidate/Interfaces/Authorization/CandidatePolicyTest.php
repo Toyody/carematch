@@ -24,6 +24,8 @@ final class CandidatePolicyTest extends TestCase
         self::assertTrue($policy->view($user, $tenant));
         self::assertSame($mayWrite, $policy->create($user, $tenant));
         self::assertSame($mayWrite, $policy->update($user, $tenant));
+        self::assertTrue($policy->viewDocuments($user, $tenant));
+        self::assertSame($mayWrite, $policy->manageDocuments($user, $tenant));
     }
 
     public function test_a_context_for_another_user_is_never_authorised(): void
@@ -36,6 +38,8 @@ final class CandidatePolicyTest extends TestCase
         self::assertFalse($policy->view($user, $tenant));
         self::assertFalse($policy->create($user, $tenant));
         self::assertFalse($policy->update($user, $tenant));
+        self::assertFalse($policy->viewDocuments($user, $tenant));
+        self::assertFalse($policy->manageDocuments($user, $tenant));
     }
 
     /**

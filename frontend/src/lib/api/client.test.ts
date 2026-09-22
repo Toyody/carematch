@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiRequest } from "./client";
+import { ApiError, apiDownload, apiRequest, apiRequestForm } from "./client";
 
 function jsonResponse(
   body: unknown,
@@ -104,5 +104,43 @@ describe("API client", () => {
       retryAfter: 27,
       status: 429,
     });
+  });
+
+  it("sends multipart data with CSRF and lets the browser set its boundary", async () => {
+    document.cookie = "XSRF-TOKEN=multipart-token; path=/";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ data: { id: 1 } }, 201));
+    vi.stubGlobal("fetch", fetchMock);
+    const form = new FormData();
+    form.set("document", new File(["pdf"], "resume.pdf"));
+
+    await apiRequestForm("/organisations/1/candidates/2/documents", form);
+
+    const request = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    const headers = request.headers as Headers;
+    expect(request.body).toBe(form);
+    expect(request.credentials).toBe("include");
+    expect(headers.get("X-XSRF-TOKEN")).toBe("multipart-token");
+    expect(headers.has("Content-Type")).toBe(false);
+    expect(headers.has("Authorization")).toBe(false);
+  });
+
+  it("downloads private binary content with cookie credentials", async () => {
+    const blob = new Blob(["private"], { type: "application/pdf" });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(blob, {
+        headers: { "Content-Type": "application/pdf" },
+        status: 200,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiDownload("/documents/1/download")).resolves.toEqual(blob);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/api/v1/documents/1/download",
+      expect.objectContaining({ credentials: "include", method: "GET" }),
+    );
   });
 });

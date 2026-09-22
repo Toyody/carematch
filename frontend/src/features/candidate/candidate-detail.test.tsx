@@ -22,6 +22,9 @@ vi.mock("./api", () => ({
   getCandidate: vi.fn(),
   updateCandidate: vi.fn(),
 }));
+vi.mock("./candidate-documents", () => ({
+  CandidateDocuments: () => <section>Documents</section>,
+}));
 
 const candidate: Candidate = {
   availability: "Immediately",
