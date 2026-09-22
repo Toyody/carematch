@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client";
+import { apiDownload, apiRequest, apiRequestForm } from "@/lib/api/client";
 
 export interface Candidate {
   availability: string | null;
@@ -57,6 +57,24 @@ interface CandidateResponse {
   data: Candidate;
 }
 
+export interface CandidateDocument {
+  created_at: string;
+  id: number;
+  mime_type: string;
+  original_name: string;
+  size_bytes: number;
+  updated_at: string;
+  uploaded_by_user_id: number;
+}
+
+interface CandidateDocumentResponse {
+  data: CandidateDocument;
+}
+
+interface CandidateDocumentListResponse {
+  data: CandidateDocument[];
+}
+
 export async function listCandidates(
   organisationId: number,
   query: CandidateListQuery = {},
@@ -110,4 +128,51 @@ export async function updateCandidate(
   );
 
   return response.data;
+}
+
+export async function listCandidateDocuments(
+  organisationId: number,
+  candidateId: number,
+): Promise<CandidateDocument[]> {
+  const response = await apiRequest<CandidateDocumentListResponse>(
+    `/organisations/${organisationId}/candidates/${candidateId}/documents`,
+  );
+
+  return response.data;
+}
+
+export async function uploadCandidateDocument(
+  organisationId: number,
+  candidateId: number,
+  file: File,
+): Promise<CandidateDocument> {
+  const form = new FormData();
+  form.set("document", file);
+  const response = await apiRequestForm<CandidateDocumentResponse>(
+    `/organisations/${organisationId}/candidates/${candidateId}/documents`,
+    form,
+  );
+
+  return response.data;
+}
+
+export async function downloadCandidateDocument(
+  organisationId: number,
+  candidateId: number,
+  documentId: number,
+): Promise<Blob> {
+  return apiDownload(
+    `/organisations/${organisationId}/candidates/${candidateId}/documents/${documentId}/download`,
+  );
+}
+
+export async function deleteCandidateDocument(
+  organisationId: number,
+  candidateId: number,
+  documentId: number,
+): Promise<void> {
+  return apiRequest<void>(
+    `/organisations/${organisationId}/candidates/${candidateId}/documents/${documentId}`,
+    { method: "DELETE", withCsrf: true },
+  );
 }

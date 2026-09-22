@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        'candidate_documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/candidate-documents'),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

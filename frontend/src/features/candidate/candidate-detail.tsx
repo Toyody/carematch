@@ -13,6 +13,7 @@ import { ApiError } from "@/lib/api/client";
 
 import { getCandidate, updateCandidate, type Candidate } from "./api";
 import { CandidateFormFields, candidateInput } from "./candidate-form-fields";
+import { CandidateDocuments } from "./candidate-documents";
 
 interface CandidateDetailResult {
   candidate: Candidate | null;
@@ -156,6 +157,13 @@ export function CandidateDetail({
         ) : (
           <CandidateReadOnly candidate={candidate} />
         )}
+
+        <CandidateDocuments
+          candidateId={candidateId}
+          key={resultKey}
+          mayManage={mayWrite}
+          organisationId={organisationId}
+        />
 
         <Link href={`/organisations/${organisationId}/candidates`}>
           Back to candidates

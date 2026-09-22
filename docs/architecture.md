@@ -233,7 +233,30 @@ and evaluates against the newly persisted status, so it cannot blindly apply a
 decision made from stale frontend state. This is serialisation of transition
 decisions, not an optimistic client-version contract.
 
-Object storage and PostgreSQL cannot share a normal transaction. Document workflows use ordered writes and compensating cleanup so failures do not leave accessible orphan records or files.
+Object storage and PostgreSQL cannot share a normal transaction. Phase 5A keeps
+Candidate document contents on a dedicated private Laravel filesystem disk and
+metadata in PostgreSQL. Upload validates the server-detected MIME and size,
+generates a random 32-byte key, writes the private object, and then inserts
+metadata. If metadata persistence fails, the action deletes the just-written
+object as compensation. If storage fails, metadata is never inserted. This is an
+ordered, compensated workflow rather than distributed atomicity.
+The local PHP upload and request ceilings remain slightly above the 10 MiB
+product limit so oversized multipart requests reach Laravel validation; the
+application validation rule remains the exact size authority.
+
+Deletion removes the private object before deleting metadata. A storage deletion
+failure leaves metadata unchanged and returns a generic internal error. A later
+metadata deletion failure may leave an inaccessible metadata row whose object is
+already gone; downloads then return a generic storage-inconsistency error, and a
+retry can reconcile the row. This ordering favours immediate removal of sensitive
+content over metadata/file atomicity and does not justify an outbox or queue for
+the portfolio MVP.
+
+Document Application actions depend only on focused metadata and storage ports.
+Laravel filesystem and Eloquent implementations remain in Candidate
+Infrastructure; multipart requests, Policies, Resources and attachment responses
+remain in Interfaces. No separate Document module or mirrored Domain entity is
+introduced because document metadata has no independent Domain behaviour.
 
 ## 9. API Conventions
 

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.9.0
+  version: 0.10.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -17,8 +17,9 @@ info:
     tenant-owned controllers run. Phase 3A applies that boundary to Candidate
     resources and scopes every nested Candidate identifier to its route Organisation.
     Phase 3B applies the same boundary to Job profiles and their explicit lifecycle.
-    Phase 4A adds tenant-safe Applications connecting an Open Job to a Candidate,
-    with atomic initial status-history persistence.
+    Phase 4 adds tenant-safe Applications and the recruitment pipeline. Phase 5A
+    adds private Candidate documents. Document contents have no public storage URL;
+    every metadata, download, upload, and delete operation is tenant-authorised.
   license:
     name: All rights reserved
 servers:
@@ -512,6 +513,136 @@ paths:
           $ref: "#/components/responses/CsrfTokenMismatch"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/candidates/{candidate}/documents:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+    get:
+      operationId: listCandidateDocuments
+      summary: List a Candidate's private document metadata
+      description: |
+        Returns metadata for documents belonging to the Candidate within the trusted
+        route Organisation, newest first with an ID tie-break. All active roles may
+        list documents. Storage keys, filesystem paths, public URLs, and file contents
+        are never returned.
+      tags: [Candidate]
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: Tenant- and Candidate-scoped document metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateDocumentListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/CandidateDocumentNotFound"
+    post:
+      operationId: uploadCandidateDocument
+      summary: Upload a private Candidate document
+      description: |
+        Admin and Recruiter may upload a non-empty PDF or DOCX of at most 10 MiB.
+        The backend determines MIME and size from the uploaded file, generates a
+        cryptographically random internal storage key, stores the content on a
+        private disk, and then persists metadata. Original names are display and
+        attachment metadata only and never determine the storage path. Malware
+        scanning is not implemented in the portfolio MVP.
+      tags: [Candidate]
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CandidateDocumentUploadRequest"
+      responses:
+        "201":
+          description: The document content and metadata were stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateDocumentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CandidateDocumentNotFound"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "500":
+          $ref: "#/components/responses/CandidateDocumentStorageFailure"
+  /organisations/{organisation}/candidates/{candidate}/documents/{document}/download:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+      - $ref: "#/components/parameters/CandidateDocumentId"
+    get:
+      operationId: downloadCandidateDocument
+      summary: Download an authorised private Candidate document
+      description: |
+        All active roles may download after the Organisation, Candidate, and Document
+        are resolved together. The backend reads the private object through its
+        internal key and returns an attachment using the safe stored original-name
+        metadata. No direct or public storage URL is issued.
+      tags: [Candidate]
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: Private document bytes returned as an attachment.
+          headers:
+            Content-Disposition:
+              description: Attachment disposition using the safe original filename metadata.
+              schema: { type: string }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema: { type: string, format: binary }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/CandidateDocumentNotFound"
+        "500":
+          $ref: "#/components/responses/CandidateDocumentStorageFailure"
+  /organisations/{organisation}/candidates/{candidate}/documents/{document}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+      - $ref: "#/components/parameters/CandidateDocumentId"
+    delete:
+      operationId: deleteCandidateDocument
+      summary: Delete a private Candidate document
+      description: |
+        Admin and Recruiter may delete. The private object is removed before its
+        metadata row so a database failure cannot leave the sensitive content
+        accessible through the application. Hiring Managers receive `403`.
+      tags: [Candidate]
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      responses:
+        "204":
+          description: The private object and metadata were deleted.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/CandidateDocumentNotFound"
+        "419":
+          $ref: "#/components/responses/CsrfTokenMismatch"
+        "500":
+          $ref: "#/components/responses/CandidateDocumentStorageFailure"
   /organisations/{organisation}/jobs:
     parameters:
       - $ref: "#/components/parameters/OrganisationId"
@@ -1198,6 +1329,17 @@ components:
         type: integer
         format: int64
         minimum: 1
+    CandidateDocumentId:
+      name: document
+      in: path
+      required: true
+      description: |
+        Document metadata identifier resolved together with the trusted route
+        Organisation and Candidate. It is never a storage key.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     JobId:
       name: job
       in: path
@@ -1276,6 +1418,23 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/NotFoundError"
+    CandidateDocumentNotFound:
+      description: |
+        The Candidate or nested Document is missing or does not belong to the
+        trusted route Organisation and Candidate. Cross-tenant, cross-Candidate,
+        and nonexistent identifiers are intentionally indistinguishable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotFoundError"
+    CandidateDocumentStorageFailure:
+      description: |
+        Private storage or metadata persistence failed, or metadata points to a
+        missing private object. Internal storage keys are never included.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CandidateDocumentStorageError"
     JobNotFound:
       description: |
         The Job does not exist within the trusted route Organisation. Cross-tenant
@@ -1615,6 +1774,79 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/Candidate"
+    CandidateDocument:
+      type: object
+      additionalProperties: false
+      description: |
+        Safe metadata for a privately stored Candidate document. The internal
+        storage key, path, public URL, Organisation ID, and Candidate ID are omitted.
+      required:
+        - id
+        - original_name
+        - mime_type
+        - size_bytes
+        - uploaded_by_user_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        original_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Safe display and attachment metadata only; never used as a storage path.
+        mime_type:
+          type: string
+          enum:
+            - application/pdf
+            - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+          description: MIME detected from file content by the backend.
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10485760
+        uploaded_by_user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CandidateDocumentResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/CandidateDocument"
+    CandidateDocumentListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandidateDocument"
+    CandidateDocumentUploadRequest:
+      type: object
+      additionalProperties: false
+      required: [document]
+      properties:
+        document:
+          type: string
+          format: binary
+          description: |
+            Non-empty PDF or DOCX, maximum 10 MiB (10,485,760 bytes).
+            The backend uses server-side content MIME detection and does not
+            trust the extension or browser-supplied MIME value.
     CandidatePaginationLinks:
       type: object
       additionalProperties: false
@@ -2189,6 +2421,17 @@ components:
         message:
           type: string
           const: Not Found
+    CandidateDocumentStorageError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          enum:
+            - The document could not be stored. Please try again.
+            - The document is temporarily unavailable.
+            - The document could not be deleted. Please try again.
     CsrfError:
       type: object
       additionalProperties: false
@@ -2297,7 +2540,7 @@ tags:
   - name: Organisation
     description: Organisation and active membership foundation operations.
   - name: Candidate
-    description: Tenant-owned Candidate creation, discovery, and profile operations.
+    description: Tenant-owned Candidate profile and private document operations.
   - name: Job
     description: Tenant-owned Job profile and explicit lifecycle operations.
   - name: System

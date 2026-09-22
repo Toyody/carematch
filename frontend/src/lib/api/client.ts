@@ -12,7 +12,14 @@ interface ErrorPayload {
 
 interface RequestOptions {
   body?: unknown;
-  method?: "GET" | "PATCH" | "POST";
+  method?: "DELETE" | "GET" | "PATCH" | "POST";
+  withCsrf?: boolean;
+}
+
+interface RawRequestOptions {
+  body?: BodyInit;
+  contentType?: string;
+  method?: "DELETE" | "GET" | "PATCH" | "POST";
   withCsrf?: boolean;
 }
 
@@ -32,21 +39,11 @@ export async function apiRequest<T>(
   path: string,
   { body, method = "GET", withCsrf = false }: RequestOptions = {},
 ): Promise<T> {
-  const headers = new Headers({ Accept: "application/json" });
-
-  if (withCsrf) {
-    headers.set("X-XSRF-TOKEN", await initialiseCsrf());
-  }
-
-  if (body !== undefined) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const response = await fetch(`${apiUrl}/api/v1${path}`, {
+  const response = await performApiRequest(path, {
     body: body === undefined ? undefined : JSON.stringify(body),
-    credentials: "include",
-    headers,
+    contentType: body === undefined ? undefined : "application/json",
     method,
+    withCsrf,
   });
 
   if (!response.ok) {
@@ -58,6 +55,61 @@ export async function apiRequest<T>(
   }
 
   return (await response.json()) as T;
+}
+
+export async function apiRequestForm<T>(
+  path: string,
+  body: FormData,
+  method: "POST" = "POST",
+): Promise<T> {
+  const response = await performApiRequest(path, {
+    body,
+    method,
+    withCsrf: true,
+  });
+
+  if (!response.ok) {
+    throw await createApiError(response);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function apiDownload(path: string): Promise<Blob> {
+  const response = await performApiRequest(path);
+
+  if (!response.ok) {
+    throw await createApiError(response);
+  }
+
+  return response.blob();
+}
+
+async function performApiRequest(
+  path: string,
+  {
+    body,
+    contentType,
+    method = "GET",
+    withCsrf = false,
+  }: RawRequestOptions = {},
+): Promise<Response> {
+  const headers = new Headers({ Accept: "application/json" });
+
+  if (withCsrf) {
+    headers.set("X-XSRF-TOKEN", await initialiseCsrf());
+  }
+
+  if (contentType !== undefined) {
+    headers.set("Content-Type", contentType);
+  }
+
+  return fetch(`${apiUrl}/api/v1${path}`, {
+    body,
+    credentials: "include",
+    headers,
+    method,
+  });
 }
 
 async function initialiseCsrf(): Promise<string> {

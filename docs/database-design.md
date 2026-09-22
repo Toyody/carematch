@@ -194,13 +194,26 @@ Fields:
 
 Constraints:
 
+- non-cascading foreign key from `organisation_id` to `organisations`
 - unique `(organisation_id, id)`
 - composite foreign key `(organisation_id, candidate_id)` to `candidates(organisation_id, id)`
 - unique `storage_key`
 - composite foreign key `(organisation_id, uploaded_by_user_id)` to `organisation_memberships(organisation_id, user_id)`
 - CHECK that `size_bytes` is positive
+- restrictive deletion for Organisation, Candidate and uploader membership references
 
-Storage keys are random and are not exposed in normal API responses.
+`original_name` is bounded to 255 characters, `storage_key` to 64 hexadecimal
+characters and `mime_type` to 100 characters. Storage keys encode 32 random bytes,
+are never derived from a Candidate, filename or timestamp, and are not exposed in
+normal API responses. The `(organisation_id, candidate_id, created_at, id)` index
+supports the deterministic newest-first nested list; the unique
+`(organisation_id, id)` index supports nested single-record resolution with a
+Candidate ownership filter.
+
+File contents are held on the private Candidate document disk, not in PostgreSQL
+or a public web directory. PDF and DOCX are the only allowed MIME values in Phase
+5A and the maximum object size is 10 MiB. MIME and size are observed by the server,
+not supplied as authoritative client metadata.
 
 ## 4. Recruitment Tables
 
@@ -315,9 +328,10 @@ through the parent Application and ordered by `created_at`, then `id`.
 - Candidates are archived or soft-deleted once retention requirements are agreed.
 - Organisation deletion is a controlled administrative process, not a cascading UI action.
 - Memberships referenced by audit fields are deactivated rather than deleted and never cascade into candidate or recruitment records.
-- Candidate document deletion removes access immediately and arranges storage cleanup safely.
+- Candidate documents persist until explicitly deleted by an authorised Admin or Recruiter; there is no automatic portfolio-MVP purge job.
+- Candidate document deletion removes private content before metadata. A metadata failure can leave an inaccessible row, but cannot leave the content downloadable through the application.
 
-Exact retention periods and jurisdiction-specific privacy obligations must be decided before production use.
+Production retention periods and jurisdiction-specific privacy obligations must be decided before real Candidate data is accepted. Demo documents remain synthetic.
 
 ## 6. Initial Index Strategy
 
@@ -340,7 +354,7 @@ Expected indexes:
 - `applications(organisation_id, applied_at, id)`
 - `applications(organisation_id, updated_at, id)`
 - `application_status_history(organisation_id, application_id, created_at)`
-- `candidate_documents(organisation_id, candidate_id, created_at)`
+- `candidate_documents(organisation_id, candidate_id, created_at, id)`
 
 Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text, trigram and PostGIS indexes are deferred until measured requirements justify them.
 
@@ -389,4 +403,4 @@ date range, with the PostgreSQL CHECK constraint as defence in depth.
 
 Membership-management mutations lock the Organisation row before membership rows, making the last-active-Admin check and write one serial decision per Organisation. Invitation creation and acceptance follow the same Organisation-first root lock before taking invitation and membership locks. This prevents concurrent demotion/deactivation operations from leaving zero active Admins and avoids inconsistent lock ordering with invitation membership reactivation.
 
-Document storage uses compensating cleanup because object storage and PostgreSQL do not share a transaction.
+Document storage uses compensating cleanup because object storage and PostgreSQL do not share a transaction. Phase 5A upload writes the private object first and compensates by deleting it if the metadata insert fails. Storage failure prevents metadata insertion. Delete removes the object first and metadata second; this deliberately prioritises removal of sensitive content if the second operation fails.

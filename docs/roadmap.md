@@ -22,7 +22,7 @@ Status: In Progress
 - [ ] Decide whether structured skills and employment history are in v1.0
 - [ ] Decide salary/rate representation
 - [x] Resolve MVP invitation verification and vendor-neutral delivery policy
-- [ ] Decide document malware scanning and retention policy before production use
+- [x] Define portfolio-MVP document scanning prerequisite and explicit-deletion retention behaviour
 
 Exit criteria:
 
@@ -165,20 +165,20 @@ The database cannot link a candidate and job from different organisations.
 
 ### Documents and dashboard
 
-- [ ] Resolve malware-scanning and retention decisions
-- [ ] Private candidate document upload
-- [ ] Authorised document download and deletion
-- [ ] Document validation and tenant-isolation tests
+- [x] Resolve portfolio-MVP malware-scanning prerequisite and retention behaviour
+- [x] Private candidate document upload
+- [x] Authorised document download and deletion
+- [x] Document validation and tenant-isolation tests
 - [ ] Minimal dashboard and verified dashboard indexes
 
 ### User experience and quality
 
-- [ ] Loading, validation, error and empty states
-- [ ] Frontend component/integration tests
+- [x] Candidate-document loading, validation, error and empty states
+- [x] Candidate-document component/integration tests
 - [ ] Playwright critical recruitment flow
 - [ ] Accessibility review of the primary flow
-- [ ] Security and sensitive-logging review
-- [ ] Query and N+1 review
+- [x] Candidate-document security and sensitive-logging review
+- [x] Candidate-document query and index review
 
 ### Portfolio assets
 
