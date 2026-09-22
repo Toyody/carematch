@@ -14,6 +14,15 @@ export interface RecruitmentApplication {
   updated_at: string;
 }
 
+export interface ApplicationHistoryEvent {
+  changed_by_user_id: number;
+  created_at: string;
+  from_status: ApplicationStatus | null;
+  id: number;
+  note: string | null;
+  to_status: ApplicationStatus;
+}
+
 export interface ApplicationListQuery {
   candidate_id?: string;
   direction?: string;
@@ -47,6 +56,10 @@ interface ApplicationResponse {
   data: RecruitmentApplication;
 }
 
+interface ApplicationHistoryResponse {
+  data: ApplicationHistoryEvent[];
+}
+
 export async function listApplications(
   organisationId: number,
   query: ApplicationListQuery = {},
@@ -77,6 +90,28 @@ export async function createApplication(
 ): Promise<RecruitmentApplication> {
   const response = await apiRequest<ApplicationResponse>(
     `/organisations/${organisationId}/applications`,
+    { body: input, method: "POST", withCsrf: true },
+  );
+  return response.data;
+}
+
+export async function getApplicationHistory(
+  organisationId: number,
+  applicationId: number,
+): Promise<ApplicationHistoryEvent[]> {
+  const response = await apiRequest<ApplicationHistoryResponse>(
+    `/organisations/${organisationId}/applications/${applicationId}/history`,
+  );
+  return response.data;
+}
+
+export async function transitionApplication(
+  organisationId: number,
+  applicationId: number,
+  input: { note?: string; to_status: ApplicationStatus },
+): Promise<RecruitmentApplication> {
+  const response = await apiRequest<ApplicationResponse>(
+    `/organisations/${organisationId}/applications/${applicationId}/transitions`,
     { body: input, method: "POST", withCsrf: true },
   );
   return response.data;

@@ -798,7 +798,8 @@ paths:
       description: |
         Resolves by trusted Organisation and Application ID together. A cross-tenant
         identifier and a nonexistent identifier have identical `404` semantics.
-        All active roles may view. Phase 4A provides no generic edit or status endpoint.
+        All active roles may view. Status is changed only through the explicit
+        transition operation, never through a generic edit endpoint.
       tags: [Application]
       security:
         - StatefulSession: []
@@ -808,6 +809,70 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ApplicationResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/ApplicationNotFound" }
+  /organisations/{organisation}/applications/{application}/transitions:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/ApplicationId"
+    post:
+      operationId: transitionApplication
+      summary: Transition an Application to a valid pipeline status
+      description: |
+        Locks the tenant-scoped Application row, reads its persisted current
+        status, authorises the exact current-to-target operation, validates the
+        Domain transition graph, then updates status and appends an immutable
+        history event atomically. The actor comes from trusted TenantContext.
+
+        Admin and Recruiter may perform every valid transition. A Hiring Manager
+        may perform only `interview` to `offer` or `interview` to `rejected`.
+        Valid transitions are: `applied` to `screening` or `rejected`;
+        `screening` to `interview` or `rejected`; `interview` to `offer` or
+        `rejected`; and `offer` to `hired` or `rejected`. `hired` and `rejected`
+        are terminal. Missing and cross-tenant Applications share `404` semantics.
+      tags: [Application]
+      security:
+        - StatefulSession: []
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransitionApplicationRequest" }
+      responses:
+        "200":
+          description: The authoritative Application representation after transition.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ApplicationTransitionForbidden" }
+        "404": { $ref: "#/components/responses/ApplicationNotFound" }
+        "409": { $ref: "#/components/responses/ApplicationTransitionConflict" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/applications/{application}/history:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/ApplicationId"
+    get:
+      operationId: listApplicationStatusHistory
+      summary: Read an Application's immutable status timeline
+      description: |
+        Returns the complete, naturally bounded status timeline in deterministic
+        `created_at`, then `id` order. All active roles may read it. History is
+        append-only through application behaviour; no update or delete operation
+        is exposed. Missing and cross-tenant Applications share `404` semantics.
+      tags: [Application]
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: The Application status timeline in chronological order.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicationStatusHistoryResponse" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/ApplicationNotFound" }
   /organisations/{organisation}/invitations:
@@ -1239,6 +1304,16 @@ components:
         application/json:
           schema:
             { $ref: "#/components/schemas/ApplicationCreationConflictError" }
+    ApplicationTransitionForbidden:
+      description: The active member's persisted role does not permit the exact locked-status transition.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApplicationTransitionForbiddenError" }
+    ApplicationTransitionConflict:
+      description: The requested transition is invalid from the locked current Application status.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApplicationTransitionConflictError" }
     InvitationNotFound:
       description: The invitation does not exist within the trusted route organisation.
       content:
@@ -1767,7 +1842,11 @@ components:
     ApplicationStatus:
       type: string
       enum: [applied, screening, interview, offer, hired, rejected]
-      description: Phase 4A creates only `applied`; lifecycle transitions are deferred to Phase 4B.
+      description: |
+        Recruitment pipeline status. Applications start at `applied`. The valid
+        graph is applied -> screening -> interview -> offer -> hired, with
+        rejected reachable from applied, screening, interview, or offer. Hired
+        and Rejected are terminal.
     ApplicationJobSummary:
       type: object
       additionalProperties: false
@@ -1833,6 +1912,43 @@ components:
       properties:
         job_id: { type: integer, format: int64, minimum: 1 }
         candidate_id: { type: integer, format: int64, minimum: 1 }
+    TransitionApplicationRequest:
+      type: object
+      additionalProperties: false
+      required: [to_status]
+      properties:
+        to_status: { $ref: "#/components/schemas/ApplicationStatus" }
+        note:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Optional trimmed transition note. An empty trimmed value is stored as null.
+    ApplicationStatusHistoryEvent:
+      type: object
+      additionalProperties: false
+      required: [id, from_status, to_status, changed_by_user_id, note, created_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        from_status:
+          oneOf:
+            - $ref: "#/components/schemas/ApplicationStatus"
+            - type: "null"
+          description: Null only for the initial Application-created event.
+        to_status: { $ref: "#/components/schemas/ApplicationStatus" }
+        changed_by_user_id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Trusted authenticated actor recorded by the server.
+        note: { type: [string, "null"], maxLength: 1000 }
+        created_at: { type: string, format: date-time }
+    ApplicationStatusHistoryResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/ApplicationStatusHistoryEvent" }
     OrganisationInvitation:
       type: object
       additionalProperties: false
@@ -2132,6 +2248,22 @@ components:
           enum:
             - Applications may only be created for an open job.
             - This candidate already has an application for this job.
+    ApplicationTransitionForbiddenError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          const: Your Organisation role cannot perform this application transition.
+    ApplicationTransitionConflictError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          const: The requested application status transition is not allowed.
     RateLimitError:
       type: object
       additionalProperties: false

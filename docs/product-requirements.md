@@ -130,10 +130,11 @@ Hired and Rejected are terminal in the MVP. Terminal-state correction or reopeni
 
 Each status change records the previous status, new status, actor, timestamp and optional note. Status changes are atomic and protected from concurrent overwrite.
 
-Phase 4A establishes the Application foundation without implementing status
-transitions. Admin and Recruiter may create an Application by selecting a
+Phase 4 establishes the Application foundation and recruitment pipeline. Admin
+and Recruiter may create an Application by selecting a
 Candidate and an Open Job from the trusted Organisation; Hiring Manager is
-read-only. The server always assigns `applied`, the current authenticated tenant
+read-only except that a Hiring Manager may decide an Application currently at
+Interview by moving it to Offer or Rejected. The server always assigns `applied`, the current authenticated tenant
 member as actor, and the UTC application time. Candidate, Job, actor, and
 Organisation identifiers are protected by composite tenant foreign keys. A
 Candidate may apply to a given Job only once. A tenant-valid Job that is not
@@ -142,10 +143,18 @@ targets use safe `404` semantics.
 
 Creation locks the tenant-scoped Job row and rechecks its persisted Open state,
 then writes the Application and initial `null -> applied` history entry in one
-transaction. Phase 4A exposes paginated list and read-only detail endpoints but
-no generic PATCH or status-transition API. Lists filter by Job, Candidate, and
+transaction. Lists filter by Job, Candidate, and
 status; sort by applied or updated time; and use the common 20/default,
 100/maximum pagination contract.
+
+Status changes use an explicit transition endpoint rather than generic profile
+editing. The server locks the tenant-scoped Application, authorises the exact
+persisted current-to-target transition, applies the Domain graph, then updates
+status and appends one history row in the same transaction. Admin and Recruiter
+may perform all valid transitions; Hiring Manager may perform only Interview to
+Offer or Interview to Rejected. Optional transition notes are trimmed, limited
+to 1,000 characters and stored as null when empty. All active roles may read the
+complete, append-only timeline in chronological `created_at`, then `id` order.
 
 ## 8. Candidate Information
 

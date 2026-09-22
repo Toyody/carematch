@@ -12,6 +12,8 @@ final class ApplicationPolicy
 
     public const string CREATE = 'applications.create';
 
+    public const string TRANSITION = 'applications.transition';
+
     public function view(Authenticatable $user, TenantContext $tenant): bool
     {
         return $user->getAuthIdentifier() === $tenant->userId;
@@ -22,6 +24,15 @@ final class ApplicationPolicy
         return $this->view($user, $tenant) && in_array($tenant->role, [
             OrganisationRole::Admin,
             OrganisationRole::Recruiter,
+        ], true);
+    }
+
+    public function transition(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->view($user, $tenant) && in_array($tenant->role, [
+            OrganisationRole::Admin,
+            OrganisationRole::Recruiter,
+            OrganisationRole::HiringManager,
         ], true);
     }
 }

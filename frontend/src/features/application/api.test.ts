@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "@/lib/api/client";
-import { createApplication, getApplication, listApplications } from "./api";
+import {
+  createApplication,
+  getApplication,
+  getApplicationHistory,
+  listApplications,
+  transitionApplication,
+} from "./api";
 
 vi.mock("@/lib/api/client", () => ({ apiRequest: vi.fn() }));
 
@@ -31,5 +37,27 @@ describe("application API", () => {
       method: "POST",
       withCsrf: true,
     });
+  });
+
+  it("reads history and posts explicit transitions through tenant-scoped paths", async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({ data: [] });
+    await getApplicationHistory(4, 9);
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/organisations/4/applications/9/history",
+    );
+
+    vi.mocked(apiRequest).mockResolvedValueOnce({ data: { id: 9 } });
+    await transitionApplication(4, 9, {
+      note: "Reviewed",
+      to_status: "screening",
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/organisations/4/applications/9/transitions",
+      {
+        body: { note: "Reviewed", to_status: "screening" },
+        method: "POST",
+        withCsrf: true,
+      },
+    );
   });
 });

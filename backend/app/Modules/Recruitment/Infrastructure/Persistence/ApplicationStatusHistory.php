@@ -27,6 +27,7 @@ final class ApplicationStatusHistory extends Model
         return [
             'from_status' => ApplicationStatus::class,
             'to_status' => ApplicationStatus::class,
+            'created_at' => 'immutable_datetime',
         ];
     }
 }

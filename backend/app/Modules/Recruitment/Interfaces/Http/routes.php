@@ -3,10 +3,12 @@
 use App\Modules\Organisation\Interfaces\Http\Middleware\ResolveTenantContext;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\CreateApplicationController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\CreateJobController;
+use App\Modules\Recruitment\Interfaces\Http\Controllers\ListApplicationHistoryController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ListApplicationsController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ListJobsController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ShowApplicationController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ShowJobController;
+use App\Modules\Recruitment\Interfaces\Http\Controllers\TransitionApplicationController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\TransitionJobController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\UpdateJobController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +21,10 @@ Route::middleware(['auth:sanctum', ResolveTenantContext::class])
         Route::post('/applications', CreateApplicationController::class)->name('api.v1.applications.store');
         Route::get('/applications/{application}', ShowApplicationController::class)
             ->whereNumber('application')->name('api.v1.applications.show');
+        Route::get('/applications/{application}/history', ListApplicationHistoryController::class)
+            ->whereNumber('application')->name('api.v1.applications.history');
+        Route::post('/applications/{application}/transitions', TransitionApplicationController::class)
+            ->whereNumber('application')->name('api.v1.applications.transitions.store');
 
         Route::get('/jobs', ListJobsController::class)->name('api.v1.jobs.index');
         Route::post('/jobs', CreateJobController::class)->name('api.v1.jobs.store');

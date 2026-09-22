@@ -160,8 +160,8 @@ route identifiers. The shared credentialed fetch/CSRF client remains the only
 browser transport; frontend role and status checks shape controls but backend
 middleware, Policies, tenant-scoped queries and Domain rules remain authoritative.
 
-Phase 4A extends Recruitment with Application creation, listing, and read-only
-detail routes. Recruitment never imports Candidate Eloquent persistence. It
+Phase 4 extends Recruitment with Application creation, listing, detail,
+explicit pipeline transitions and status-history reads. Recruitment never imports Candidate Eloquent persistence. It
 uses the batch-capable `CandidateReferenceLookup` Application contract for
 tenant-scoped Candidate existence and compact name summaries. Application list
 enrichment performs one Candidate batch query rather than one lookup per row.
@@ -172,11 +172,22 @@ Application ownership and actor identity come only from `TenantContext`.
 Nested Application detail uses Organisation and Application ID together, while
 creation locks a Job using Organisation and Job ID together before checking the
 persisted Open status. Composite PostgreSQL foreign keys independently prevent
-cross-tenant Candidate, Job, and actor references. Phase 4A deliberately exposes
-no status mutation endpoint; the framework-independent `ApplicationStatus` enum
-defines persisted vocabulary only, not the deferred Phase 4B transition graph.
+cross-tenant Candidate, Job, and actor references. The framework-independent
+`ApplicationStatus` enum owns the exact transition graph. There is no generic
+Application status PATCH; status changes use the explicit transition use case.
 Frontend Application state is keyed by authenticated user and route identifiers,
-with filters and pagination stored in the URL.
+with filters and pagination stored in the URL. The detail screen reads the
+append-only timeline and derives role/status controls only for UX; backend
+authorisation remains authoritative and a `409` causes detail and history to be
+reloaded from the server.
+
+Application Policy provides broad transition eligibility for all three fixed
+roles. The persistence adapter then locks the tenant-scoped Application and uses
+a small Application-layer permission rule against the persisted current status,
+trusted membership role and requested target. Admin and Recruiter may attempt
+the full Domain graph. Hiring Manager is authorised only for Interview to Offer
+or Interview to Rejected. Role/state denial is `403`; a role-authorised request
+that conflicts with the Domain graph is `409`.
 
 ## 8. Transaction Boundaries
 
@@ -214,7 +225,13 @@ therefore serialised on the same Job row. Concurrent duplicate creation is
 settled by the named `(organisation_id, job_id, candidate_id)` unique constraint;
 only that constraint is translated to the duplicate-Application `409` contract.
 
-Application status changes use a row lock or explicit version check so concurrent changes cannot silently overwrite each other.
+Application status changes start one transaction and select the Application by
+trusted Organisation and route ID with `FOR UPDATE`. Exact role/state
+authorisation and Domain validation occur only after that lock. The status
+update and one new history row then commit together. A competing request waits
+and evaluates against the newly persisted status, so it cannot blindly apply a
+decision made from stale frontend state. This is serialisation of transition
+decisions, not an optimistic client-version contract.
 
 Object storage and PostgreSQL cannot share a normal transaction. Document workflows use ordered writes and compensating cleanup so failures do not leave accessible orphan records or files.
 
