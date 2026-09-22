@@ -141,13 +141,13 @@ Exit criteria:
 - [x] Application creation for an Open job
 - [x] Duplicate candidate/job prevention
 - [x] Application listing and details
-- [ ] Domain-level status-transition rules
+- [x] Domain-level status-transition rules
 - [x] Immutable application status history foundation and initial Applied entry
-- [ ] Atomic status update and history append
-- [ ] Concurrent-update protection
-- [ ] Role-based transition authorisation
-- [ ] Recruitment pipeline UI
-- [ ] Domain, transaction, authorisation and tenant-isolation tests
+- [x] Atomic status update and history append
+- [x] Concurrent-update protection
+- [x] Role-based transition authorisation
+- [x] Recruitment pipeline UI
+- [x] Domain, transaction, authorisation and tenant-isolation tests
 
 Exit criteria:
 

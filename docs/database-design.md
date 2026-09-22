@@ -266,12 +266,18 @@ Constraints:
 
 Repeat applications by the same candidate to the same job are not supported in the MVP.
 
-Phase 4A creates Applications only with status `applied` and a server-controlled
+Application creation uses status `applied` and a server-controlled
 UTC `applied_at`. All foreign keys use restrictive deletion. The composite Job,
 Candidate, and creator-membership foreign keys make cross-tenant references
 invalid even if application validation is bypassed. Application and initial
 history creation share one transaction, and the Job row is locked before its
 persisted Open state is evaluated.
+
+Later status changes lock the Application using `(organisation_id, id)` before
+reading current status. The allowed transition and persisted membership role are
+evaluated after the lock. The normal `updated_at` changes with status; separate
+per-stage timestamp columns are unnecessary because history records the audit
+time.
 
 ### `application_status_history`
 
@@ -294,7 +300,13 @@ Constraints:
 - composite foreign key `(organisation_id, changed_by_user_id)` to `organisation_memberships(organisation_id, user_id)`
 - CHECK constraints for supported status values
 
-Application creation writes its initial `applied` history row in the same transaction. Status history is append-only through normal application operations.
+Application creation writes its initial `applied` history row in the same
+transaction. Every valid transition updates the Application and appends exactly
+one row in one transaction. `note` is optional, trimmed, limited to 1,000
+characters by application validation, and empty values become null. Status
+history is append-only through normal application operations: only create/read
+paths exist, with no update or delete endpoint. History reads are tenant-scoped
+through the parent Application and ordered by `created_at`, then `id`.
 
 ## 5. Deletion and Retention
 
@@ -341,14 +353,17 @@ the initial MVP: PostgreSQL plans were inspected against representative local
 data, and additional or trigram indexes are deferred until production volume and
 selectivity justify their write/storage cost.
 
-The Phase 4A Application indexes support duplicate/Job lookup, Candidate and
+The Phase 4 Application indexes support duplicate/Job lookup, Candidate and
 status filters, and deterministic applied/updated sorting. Representative
 PostgreSQL `EXPLAIN ANALYZE` plans were reviewed with 5,000 temporary rows. The
 tenant applied-time list used `(organisation_id, applied_at, id)`, status lists
 used `(organisation_id, status, applied_at, id)`, Candidate filters used
 `(organisation_id, candidate_id)`, updated-time sorting used
 `(organisation_id, updated_at, id)`, and Job filters used the duplicate-prevention
-unique index before a small bounded sort. No additional Phase 4A index was
+unique index before a small bounded sort. The status-history timeline is bounded
+by the fixed transition graph and uses the existing
+`(organisation_id, application_id, created_at)` index; the `id` tie-break does
+not justify another index at this size. No additional Phase 4 index was
 justified; temporary plan data was rolled back.
 
 ## 7. Transactions and Concurrency
@@ -362,7 +377,10 @@ The following writes are atomic:
 - application plus initial status history
 - application status update plus status history append
 
-Application status updates use row locking or an explicit version check. A stale transition fails rather than overwriting a concurrent change.
+Application status updates lock the tenant-scoped row with `FOR UPDATE`. A
+competing request waits, then re-evaluates its requested target against the
+persisted status. An incompatible stale transition fails instead of overwriting
+the first result. The status update and history append share the transaction.
 
 Job lifecycle transitions lock the tenant-scoped Job row before checking the
 persisted state and updating it. Profile edits cannot change status. Profile date

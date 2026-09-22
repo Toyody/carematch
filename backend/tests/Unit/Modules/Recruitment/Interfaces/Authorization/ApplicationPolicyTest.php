@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 final class ApplicationPolicyTest extends TestCase
 {
     #[DataProvider('roles')]
-    public function test_phase_4a_permission_matrix(OrganisationRole $role, bool $mayCreate): void
+    public function test_application_operation_permission_matrix(OrganisationRole $role, bool $mayCreate): void
     {
         $user = new User;
         $user->setAttribute('id', 7);
@@ -21,6 +21,7 @@ final class ApplicationPolicyTest extends TestCase
 
         self::assertTrue($policy->view($user, $tenant));
         self::assertSame($mayCreate, $policy->create($user, $tenant));
+        self::assertTrue($policy->transition($user, $tenant));
     }
 
     public function test_context_for_another_user_is_never_authorised(): void
@@ -32,6 +33,7 @@ final class ApplicationPolicyTest extends TestCase
 
         self::assertFalse($policy->view($user, $tenant));
         self::assertFalse($policy->create($user, $tenant));
+        self::assertFalse($policy->transition($user, $tenant));
     }
 
     /** @return array<string, array{OrganisationRole, bool}> */
