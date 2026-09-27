@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := docker compose
 
-.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate test test-backend test-frontend lint analyse format build audit openapi-lint check
+.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate test test-backend test-frontend test-e2e lint analyse format build audit openapi-lint check
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -44,6 +44,9 @@ test-backend:
 
 test-frontend:
 	$(DOCKER_COMPOSE) run --rm frontend npm test
+
+test-e2e:
+	./scripts/run-e2e.sh
 
 lint:
 	$(DOCKER_COMPOSE) run --rm backend composer lint

@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Candidate\Infrastructure\Providers\CandidateServiceProvider;
+use App\Modules\Dashboard\Infrastructure\Providers\DashboardServiceProvider;
 use App\Modules\Identity\Infrastructure\Providers\IdentityServiceProvider;
 use App\Modules\Organisation\Infrastructure\Providers\OrganisationServiceProvider;
 use App\Modules\Recruitment\Infrastructure\Providers\RecruitmentServiceProvider;
@@ -12,4 +13,5 @@ return [
     OrganisationServiceProvider::class,
     CandidateServiceProvider::class,
     RecruitmentServiceProvider::class,
+    DashboardServiceProvider::class,
 ];

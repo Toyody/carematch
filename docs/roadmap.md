@@ -169,16 +169,20 @@ The database cannot link a candidate and job from different organisations.
 - [x] Private candidate document upload
 - [x] Authorised document download and deletion
 - [x] Document validation and tenant-isolation tests
-- [ ] Minimal dashboard and verified dashboard indexes
+- [x] Minimal tenant dashboard and verified dashboard indexes
 
 ### User experience and quality
 
 - [x] Candidate-document loading, validation, error and empty states
 - [x] Candidate-document component/integration tests
-- [ ] Playwright critical recruitment flow
-- [ ] Accessibility review of the primary flow
+- [x] Primary-flow loading, validation, error and empty states
+- [x] Dashboard component/integration tests
+- [x] Playwright critical recruitment flow with isolated PostgreSQL
+- [x] Accessibility and responsive review of the primary flow
 - [x] Candidate-document security and sensitive-logging review
 - [x] Candidate-document query and index review
+- [x] Broader Phase 5 security and sensitive-logging review
+- [x] Broader Phase 5 query and N+1 review
 
 ### Portfolio assets
 

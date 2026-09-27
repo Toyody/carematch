@@ -44,8 +44,10 @@ See:
 
 ## Current Status
 
-Phase 1 provides the local development and quality foundation only. Authentication,
-tenant business logic and recruitment features are intentionally not implemented yet.
+The implementation currently covers stateful authentication, Organisation
+multi-tenancy and RBAC, Candidates and private Candidate documents, Jobs,
+Applications and the recruitment pipeline, plus a tenant-scoped Organisation
+dashboard. Phase 5C portfolio assets and Phase 6 deployment remain deferred.
 
 ## Local Development
 
@@ -94,6 +96,7 @@ make migrate
 make test
 make test-backend
 make test-frontend
+make test-e2e
 make lint
 make analyse
 make build
@@ -105,6 +108,13 @@ make format
 
 `make check` runs formatting/linting, static analysis, tests, the Next.js
 production build and OpenAPI linting. `make format` applies formatting fixes.
+
+`make test-e2e` builds an isolated production-mode application stack, creates
+only the disposable `carematch_e2e` PostgreSQL database, runs the critical
+Chromium recruitment flow and removes the E2E containers and volumes afterward.
+The guarded reset script refuses normal development and production database
+settings. It is intentionally separate from `make check` because it is slower;
+CI runs it as a required dedicated job.
 
 Direct container commands:
 
