@@ -1,0 +1,50 @@
+services:
+  backend:
+    command: ["/app/scripts/serve-e2e.sh"]
+    environment:
+      APP_ENV: e2e
+      APP_DEBUG: "false"
+      APP_KEY: ${E2E_APP_KEY:?E2E_APP_KEY must be generated for the disposable E2E environment}
+      APP_URL: http://host.docker.internal:8100
+      FRONTEND_URL: http://host.docker.internal:3100
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_e2e
+      DB_USERNAME: carematch
+      DB_PASSWORD: carematch_e2e_local
+      SESSION_DRIVER: database
+      SESSION_COOKIE: carematch_e2e_session
+      SESSION_SECURE_COOKIE: "false"
+      SESSION_HTTP_ONLY: "true"
+      SESSION_SAME_SITE: lax
+      SANCTUM_STATEFUL_DOMAINS: host.docker.internal:3100
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: log
+
+  frontend:
+    command: ["/app/scripts/start-e2e.sh"]
+    environment:
+      NEXT_PUBLIC_API_URL: http://host.docker.internal:8100
+    volumes:
+      - e2e_next:/app/.next
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    profiles: [e2e]
+    working_dir: /work/frontend
+    environment:
+      PLAYWRIGHT_BASE_URL: http://host.docker.internal:3100
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./frontend:/work/frontend
+      - playwright_node_modules:/work/frontend/node_modules
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+volumes:
+  e2e_next:
+  playwright_node_modules:

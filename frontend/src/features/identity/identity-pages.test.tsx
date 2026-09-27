@@ -191,7 +191,7 @@ describe("Identity pages", () => {
         screen.getAllByText(
           "The password reset token is invalid or has expired.",
         ),
-      ).toHaveLength(2);
+      ).toHaveLength(1);
     });
   });
 });

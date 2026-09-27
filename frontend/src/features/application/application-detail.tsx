@@ -238,7 +238,10 @@ function HistoryTimeline({ history }: { history: ApplicationHistoryEvent[] }) {
   return (
     <section aria-labelledby="history-heading">
       <h2 id="history-heading">Status history</h2>
-      <ol className="application-history">
+      <ol
+        aria-label="Application status history"
+        className="application-history"
+      >
         {history.map((event) => (
           <li key={event.id}>
             <strong>

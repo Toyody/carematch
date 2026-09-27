@@ -354,6 +354,7 @@ Expected indexes:
 - `applications(organisation_id, applied_at, id)`
 - `applications(organisation_id, updated_at, id)`
 - `application_status_history(organisation_id, application_id, created_at)`
+- `application_status_history(organisation_id, created_at DESC, id DESC)`
 - `candidate_documents(organisation_id, candidate_id, created_at, id)`
 
 Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text, trigram and PostGIS indexes are deferred until measured requirements justify them.
@@ -379,6 +380,18 @@ by the fixed transition graph and uses the existing
 `(organisation_id, application_id, created_at)` index; the `id` tie-break does
 not justify another index at this size. No additional Phase 4 index was
 justified; temporary plan data was rolled back.
+
+The Phase 5B dashboard uses existing tenant-leading Candidate, Job and Application
+indexes for its count and grouped-status queries. Representative PostgreSQL plans
+were inspected with 10,000 Candidates, 10,000 Jobs, 10,000 Applications and
+50,000 status-history rows in one rolled-back test transaction. Candidate count
+and grouped Application status appropriately used sequential scans when the
+representative tenant owned every generated row; the Open Job count used the
+existing `(organisation_id, status, created_at)` index. The latest-five activity
+query improved from a full history scan, top-N sort and joins (about 35.5 ms) to a
+tenant-leading history index scan with bounded joins (about 0.09 ms), justifying
+`(organisation_id, created_at DESC, id DESC)`. These local timings explain the
+decision but are not production performance guarantees.
 
 ## 7. Transactions and Concurrency
 

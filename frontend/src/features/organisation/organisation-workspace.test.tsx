@@ -7,6 +7,11 @@ import { ApiError } from "@/lib/api/client";
 import { getOrganisation, listOrganisations, type Organisation } from "./api";
 import { OrganisationWorkspace } from "./organisation-workspace";
 
+vi.mock("@/features/dashboard/organisation-dashboard", () => ({
+  OrganisationDashboard: ({ organisationId }: { organisationId: number }) => (
+    <section aria-label="Dashboard">Dashboard for {organisationId}</section>
+  ),
+}));
 vi.mock("@/features/identity/auth-context", () => ({ useAuth: vi.fn() }));
 vi.mock("./api", () => ({
   getOrganisation: vi.fn(),
@@ -75,6 +80,9 @@ describe("OrganisationWorkspace", () => {
     expect(
       screen.getByRole("link", { name: "Manage applications" }),
     ).toHaveAttribute("href", `/organisations/${northside.id}/applications`);
+    expect(screen.getByRole("region", { name: "Dashboard" })).toHaveTextContent(
+      `Dashboard for ${northside.id}`,
+    );
     expect(getOrganisation).toHaveBeenCalledWith(northside.id);
     expect(listOrganisations).toHaveBeenCalledTimes(1);
   });

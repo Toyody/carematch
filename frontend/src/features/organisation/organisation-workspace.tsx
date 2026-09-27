@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { OrganisationDashboard } from "@/features/dashboard/organisation-dashboard";
 import { useAuth } from "@/features/identity/auth-context";
 import { ApiError } from "@/lib/api/client";
 
@@ -154,16 +155,25 @@ export function OrganisationWorkspace({
             <p>
               Your role: <strong>{organisation.membership.role}</strong>
             </p>
-            <Link href={`/organisations/${organisationId}/candidates`}>
-              Manage candidates
-            </Link>
-            <Link href={`/organisations/${organisationId}/jobs`}>
-              Manage jobs
-            </Link>
-            <Link href={`/organisations/${organisationId}/applications`}>
-              Manage applications
-            </Link>
+            <nav aria-label="Organisation workspace">
+              <Link href={`/organisations/${organisationId}/candidates`}>
+                Manage candidates
+              </Link>
+              <Link href={`/organisations/${organisationId}/jobs`}>
+                Manage jobs
+              </Link>
+              <Link href={`/organisations/${organisationId}/applications`}>
+                Manage applications
+              </Link>
+            </nav>
           </header>
+        ) : null}
+
+        {organisation ? (
+          <OrganisationDashboard
+            organisationId={organisationId}
+            userId={user.id}
+          />
         ) : null}
 
         <section aria-labelledby="workspace-switcher-title">

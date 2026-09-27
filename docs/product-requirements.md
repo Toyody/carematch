@@ -263,14 +263,17 @@ claim healthcare or recruitment compliance.
 
 ## 12. Minimal Dashboard
 
-The MVP dashboard is intentionally small and may show:
+The Organisation workspace includes an intentionally small tenant-scoped dashboard showing:
 
 - open job count
-- active candidate count
-- application counts grouped by current pipeline status
-- recent application activity
+- Candidate count, meaning every currently persisted Candidate because the MVP has no Candidate active/inactive lifecycle
+- application counts for every current pipeline status, including zero values
+- the latest five immutable Application status-history events, enriched with compact Candidate and Job identities
 
-Advanced analytics and cross-tenant reporting are excluded.
+All active Organisation roles may view the dashboard. Counts and activity are
+computed only for the route Organisation after active membership resolution.
+Advanced analytics, date-range reporting, charts and cross-tenant reporting are
+excluded.
 
 ## 13. Non-MVP Features
 

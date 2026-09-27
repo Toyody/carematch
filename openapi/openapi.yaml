@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.10.0
+  version: 0.11.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -20,6 +20,7 @@ info:
     Phase 4 adds tenant-safe Applications and the recruitment pipeline. Phase 5A
     adds private Candidate documents. Document contents have no public storage URL;
     every metadata, download, upload, and delete operation is tenant-authorised.
+    Phase 5B adds a small tenant-scoped Dashboard read model.
   license:
     name: All rights reserved
 servers:
@@ -346,6 +347,35 @@ paths:
           $ref: "#/components/responses/CsrfTokenMismatch"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /organisations/{organisation}/dashboard:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: getOrganisationDashboard
+      summary: Get the tenant dashboard
+      description: |
+        Returns a deliberately small read-only projection for the trusted route
+        Organisation. Candidate count means every currently persisted tenant
+        Candidate because the MVP has no Candidate lifecycle. Open Job count
+        includes only Jobs whose current status is `open`. Application counts
+        include all known statuses, including zero values. Recent activity is
+        the latest five immutable Application status-history events, ordered by
+        event time and ID descending. Admin, Recruiter, and Hiring Manager may view.
+      tags:
+        - Dashboard
+      security:
+        - StatefulSession: []
+      responses:
+        "200":
+          description: Tenant-scoped dashboard metrics and recent activity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
   /organisations/{organisation}/candidates:
     parameters:
       - $ref: "#/components/parameters/OrganisationId"
@@ -2181,6 +2211,60 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/ApplicationStatusHistoryEvent" }
+    DashboardApplicationCounts:
+      type: object
+      additionalProperties: false
+      required: [applied, screening, interview, offer, hired, rejected]
+      properties:
+        applied: { type: integer, minimum: 0 }
+        screening: { type: integer, minimum: 0 }
+        interview: { type: integer, minimum: 0 }
+        offer: { type: integer, minimum: 0 }
+        hired: { type: integer, minimum: 0 }
+        rejected: { type: integer, minimum: 0 }
+    DashboardApplicationActivity:
+      type: object
+      additionalProperties: false
+      required:
+        [application_id, candidate, job, from_status, to_status, changed_at]
+      properties:
+        application_id: { type: integer, format: int64, minimum: 1 }
+        candidate: { $ref: "#/components/schemas/ApplicationCandidateSummary" }
+        job: { $ref: "#/components/schemas/ApplicationJobSummary" }
+        from_status:
+          oneOf:
+            - $ref: "#/components/schemas/ApplicationStatus"
+            - type: "null"
+          description: Null for the initial Application-created event.
+        to_status: { $ref: "#/components/schemas/ApplicationStatus" }
+        changed_at: { type: string, format: date-time }
+    Dashboard:
+      type: object
+      additionalProperties: false
+      required:
+        [candidate_count, open_job_count, application_counts, recent_application_activity]
+      properties:
+        candidate_count:
+          type: integer
+          minimum: 0
+          description: All persisted Candidates in the trusted Organisation; the MVP has no Candidate active/inactive lifecycle.
+        open_job_count:
+          type: integer
+          minimum: 0
+          description: Jobs in the trusted Organisation whose current status is `open`.
+        application_counts:
+          $ref: "#/components/schemas/DashboardApplicationCounts"
+        recent_application_activity:
+          type: array
+          maxItems: 5
+          description: Latest immutable status-history events in descending event-time and ID order.
+          items: { $ref: "#/components/schemas/DashboardApplicationActivity" }
+    DashboardResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/Dashboard" }
     OrganisationInvitation:
       type: object
       additionalProperties: false
@@ -2543,5 +2627,7 @@ tags:
     description: Tenant-owned Candidate profile and private document operations.
   - name: Job
     description: Tenant-owned Job profile and explicit lifecycle operations.
+  - name: Dashboard
+    description: Read-only tenant metrics and recent recruitment activity.
   - name: System
     description: Operational endpoints for the CareMatch API.

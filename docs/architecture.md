@@ -33,6 +33,10 @@ backend/app/
             Application/
             Infrastructure/
             Interfaces/
+        Dashboard/
+            Application/
+            Infrastructure/
+            Interfaces/
 ```
 
 Laravel bootstrap, shared framework configuration and genuinely cross-cutting providers may remain in conventional Laravel locations. A generic `Shared` or `Common` module must not become a dumping ground.
@@ -58,6 +62,14 @@ Owns tenant-scoped candidate records, profile information, document metadata and
 Owns tenant-scoped jobs, applications, job state rules, application status transitions and application status history.
 
 Recruitment refers to Candidate through an explicit application-level contract or identifier. It does not reach into Candidate's internal persistence implementation.
+
+### Dashboard
+
+Owns no business records. It is a read-only cross-module projection for the
+Organisation workspace. Its Application action depends on one focused read-model
+port, and its PostgreSQL adapter aggregates Candidate and Recruitment tables using
+trusted tenant identifiers. It does not expose a generic reporting framework or
+move Candidate, Job, Application or history ownership out of their modules.
 
 ## 4. Layers and Dependency Rule
 
@@ -127,6 +139,13 @@ Client-supplied `organisation_id` does not determine ownership. Create operation
 Tenant protection is layered through membership middleware, Policies, tenant-scoped route binding and queries, application invariants, composite PostgreSQL constraints and negative isolation tests. A global Eloquent scope may be defence in depth but cannot be the only control.
 
 Tenant-owned audit fields that identify an actor use composite membership foreign keys so the recorded actor is associated with the same organisation. Memberships are deactivated rather than deleted when historical records refer to them.
+
+The Phase 5B dashboard uses the same tenant boundary. `auth:sanctum` and tenant
+resolution run before its controller, and the Application action receives the
+request-scoped `TenantContext` explicitly. All active roles may read it. The
+adapter applies `organisation_id` inside each count, aggregation and recent-history
+query; it never aggregates globally and filters afterward. Recent activity joins
+Candidate and Job identity in the same bounded query, avoiding per-item lookups.
 
 ## 7. Authentication and RBAC
 
@@ -268,7 +287,30 @@ introduced because document metadata has no independent Domain behaviour.
 - Maintain OpenAPI as the REST contract.
 - Do not expose credentials, storage keys or unnecessary personal information through API Resources.
 
-## 10. Pragmatism and Laravel Conventions
+## 10. Read-model and query strategy
+
+The Phase 5B Dashboard uses four fixed PostgreSQL queries: one tenant Candidate
+count, one tenant Open Job count, one grouped Application-status count and one
+bounded latest-five status-history query with Candidate and Job enrichment. It
+does not load collections to count them, issue one query per status or enrich
+activity with N+1 lookups. Representative `EXPLAIN ANALYZE` inspection determines
+whether an index is added; indexes are not inferred mechanically from API fields.
+
+Primary-flow query review also verifies that existing list/detail/document paths
+remain tenant-scoped, bounded where pagination applies, and batch-enriched where
+cross-module Candidate summaries are needed. Exact query-count tests protect only
+stable, intentional properties rather than Laravel internals.
+
+The Phase 5B application-level logging review found no deliberate request-body,
+session/CSRF cookie, password, reset-token, invitation-token, Candidate document
+content or private storage-key logging in the primary flow. The local log mailer
+remains an explicit development-only exception because it substitutes for email
+delivery. Production reverse-proxy/runtime access-log configuration is not yet
+selected; Phase 6 must ensure password-reset query strings and other sensitive URL
+material are omitted or redacted. This review does not claim that deployment-level
+logging is already operationally configured.
+
+## 11. Pragmatism and Laravel Conventions
 
 Use Form Requests, Policies, Gates, API Resources, Eloquent, migrations and service providers where they clearly solve the problem.
 

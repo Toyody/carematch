@@ -17,14 +17,15 @@ export function FormError({ error }: { error: unknown }) {
 
   return (
     <div className="form-message form-message-error" role="alert">
-      <p>{error.message}</p>
       {validationMessages.length > 0 ? (
         <ul>
           {validationMessages.map((message) => (
             <li key={message}>{message}</li>
           ))}
         </ul>
-      ) : null}
+      ) : (
+        <p>{error.message}</p>
+      )}
     </div>
   );
 }
