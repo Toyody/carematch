@@ -19,6 +19,8 @@ services:
       SESSION_HTTP_ONLY: "true"
       SESSION_SAME_SITE: lax
       SANCTUM_STATEFUL_DOMAINS: host.docker.internal:3100
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
       MAIL_MAILER: log
 
   frontend:
