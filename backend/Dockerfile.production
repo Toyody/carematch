@@ -1,0 +1,52 @@
+FROM php:8.5-apache-bookworm AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libonig-dev \
+        libpq-dev \
+        libzip-dev \
+        unzip \
+    && docker-php-ext-install mbstring pdo_pgsql zip \
+    && a2enmod rewrite headers \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/carematch.ini /usr/local/etc/php/conf.d/carematch.ini
+COPY docker/production.ini /usr/local/etc/php/conf.d/production.ini
+COPY docker/apache-ports.conf /etc/apache2/ports.conf
+COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+
+WORKDIR /var/www/html
+
+FROM runtime AS build
+
+COPY --from=composer:2.10 /usr/bin/composer /usr/local/bin/composer
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-scripts \
+    --no-progress \
+    --prefer-dist
+
+COPY . .
+RUN composer dump-autoload --classmap-authoritative --no-dev \
+    && php artisan package:discover --ansi
+
+FROM runtime AS production
+
+ENV APP_ENV=production \
+    APP_DEBUG=false
+
+COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
+
+RUN mkdir -p /var/run/apache2 storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
+    && chown -R www-data:www-data /var/run/apache2 storage bootstrap/cache
+
+USER www-data
+
+EXPOSE 8080
+
+HEALTHCHECK --start-period=15s --interval=15s --timeout=5s --retries=4 \
+    CMD php -r "exit(@file_get_contents('http://127.0.0.1:8080/up') === false ? 1 : 0);"
+
+CMD ["apache2-foreground"]

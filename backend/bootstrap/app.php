@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RejectPublicDemoOperation;
 use App\Modules\Identity\Interfaces\Http\Middleware\EnsureGuestApi;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,7 +15,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $trustedProxies = env('TRUSTED_PROXIES');
+        if (is_string($trustedProxies) && $trustedProxies !== '') {
+            $middleware->trustProxies(
+                at: $trustedProxies,
+                headers: Request::HEADER_X_FORWARDED_AWS_ELB,
+            );
+        }
+
         $middleware->statefulApi();
+        $middleware->alias([
+            'public-demo.restrict' => RejectPublicDemoOperation::class,
+        ]);
         $middleware->prependToPriorityList(
             ThrottleRequests::class,
             EnsureGuestApi::class,

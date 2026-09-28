@@ -156,6 +156,16 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  production-images:
+    name: Production images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and verify same-origin production containers
+        run: make test-production-images
+
   e2e:
     name: Critical recruitment flow
     runs-on: ubuntu-latest

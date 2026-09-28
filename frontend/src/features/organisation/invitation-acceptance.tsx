@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 
 import { FormError } from "@/components/forms/form-error";
 import { useAuth } from "@/features/identity/auth-context";
+import { isPublicDemo } from "@/lib/public-demo";
 
 import { acceptOrganisationInvitation } from "./api";
 
@@ -103,18 +104,22 @@ export function InvitationAcceptance() {
       <section className="foundation-card auth-card">
         <h1>Organisation invitation</h1>
         <p>
-          Log in or register with the email address that received this
-          invitation.
+          Log in{!isPublicDemo ? " or register" : ""} with the email address
+          that received this invitation.
         </p>
         <p>
           Open{" "}
           <Link href="/login" target="_blank">
             login
           </Link>{" "}
-          or{" "}
-          <Link href="/register" target="_blank">
-            registration
-          </Link>{" "}
+          {!isPublicDemo ? (
+            <>
+              or{" "}
+              <Link href="/register" target="_blank">
+                registration
+              </Link>{" "}
+            </>
+          ) : null}
           in a new tab, then return here.
         </p>
         <button onClick={() => window.location.reload()} type="button">

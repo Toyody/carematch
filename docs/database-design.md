@@ -68,6 +68,15 @@ The standard Laravel Sanctum infrastructure remains installed because Sanctum is
 
 Phase 2-A does not add `HasApiTokens` to the User model and does not expose token issuing, listing, revocation or management functionality. The table does not change the product authentication model: the first-party SPA uses stateful cookies and database sessions only. API-token functionality requires a later documented external-consumer requirement.
 
+### `cache` and `cache_locks`
+
+Laravel's standard database-cache tables support a shared production cache across
+backend tasks. `cache` stores the cache key, serialised value and indexed expiry;
+`cache_locks` stores the lock key, owner and indexed expiry. Both keys are primary
+keys. Production uses this store for distributed authentication rate limits;
+local development and isolated E2E continue to use the file cache. These are
+framework infrastructure tables and do not contain tenant-owned business data.
+
 ### `organisations`
 
 Tenant records.

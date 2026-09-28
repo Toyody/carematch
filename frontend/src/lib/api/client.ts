@@ -1,7 +1,15 @@
-const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export function apiEndpoint(
+  path: string,
+  configuredApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
+): string {
+  return `${configuredApiUrl.replace(/\/$/, "")}/api/v1${path}`;
+}
 
-const apiUrl = configuredApiUrl.replace(/\/$/, "");
+export function csrfEndpoint(
+  configuredApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
+): string {
+  return `${configuredApiUrl.replace(/\/$/, "")}/sanctum/csrf-cookie`;
+}
 
 type ValidationErrors = Record<string, string[]>;
 
@@ -104,7 +112,7 @@ async function performApiRequest(
     headers.set("Content-Type", contentType);
   }
 
-  return fetch(`${apiUrl}/api/v1${path}`, {
+  return fetch(apiEndpoint(path), {
     body,
     credentials: "include",
     headers,
@@ -113,7 +121,7 @@ async function performApiRequest(
 }
 
 async function initialiseCsrf(): Promise<string> {
-  const response = await fetch(`${apiUrl}/sanctum/csrf-cookie`, {
+  const response = await fetch(csrfEndpoint(), {
     credentials: "include",
     headers: { Accept: "application/json" },
     method: "GET",

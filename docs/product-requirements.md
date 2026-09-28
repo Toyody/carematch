@@ -285,10 +285,14 @@ it does not seed Candidate documents, it never runs during normal setup or CI,
 and it refuses production execution. Re-running it must reuse its own known demo
 records without duplicating or overwriting unrelated data.
 
-A future public demo remains Phase 6 work. Deployment must provision a dedicated
-synthetic account from secrets/configuration and deliberately define any reset or
-reseed policy. It must not reuse a developer account, commit a shared password,
-or contain real Candidate information.
+Phase 6A provides a guarded production-only command for provisioning a dedicated
+public-demo account and synthetic dataset from secrets/configuration. Public-demo
+mode disables public registration, Organisation creation, password recovery,
+invitation creation and Candidate-document upload/deletion while retaining the
+portfolio recruitment workflow. The command is never run automatically, performs
+no destructive reset and must not reuse a developer account, commit a shared
+password or contain real Candidate information. A live public demo remains
+unverified until Phase 6B/6C deployment and operational checks are complete.
 
 ## 14. Non-MVP Features
 

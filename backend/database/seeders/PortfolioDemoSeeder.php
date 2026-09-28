@@ -30,6 +30,16 @@ final class PortfolioDemoSeeder extends Seeder
     {
         $this->assertSafeToRun();
 
+        $this->provision();
+    }
+
+    /**
+     * Provision the guarded synthetic dataset after the caller has applied its
+     * environment-specific safety checks.
+     */
+    public function provision(): void
+    {
+
         $email = $this->demoEmail();
         $password = $this->demoPassword();
 

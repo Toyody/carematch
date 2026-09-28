@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 
 import { FormError } from "@/components/forms/form-error";
 import { resetPassword } from "@/features/identity/api";
+import { isPublicDemo } from "@/lib/public-demo";
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -14,6 +15,20 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessful, setIsSuccessful] = useState(false);
+
+  if (isPublicDemo) {
+    return (
+      <main>
+        <section className="foundation-card auth-card">
+          <h1>Reset password</h1>
+          <p role="status">
+            Password recovery is unavailable in the public portfolio demo.
+          </p>
+          <Link href="/login">Back to login</Link>
+        </section>
+      </main>
+    );
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
