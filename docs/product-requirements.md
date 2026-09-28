@@ -74,7 +74,7 @@ An active Admin may list active and deactivated memberships, change an active me
 - Recruitment status workflow and history
 - Search, filtering and pagination for core lists
 
-### Portfolio-ready v1.0 completion
+### Implemented portfolio-ready v1.0
 
 - Recruitment pipeline UI
 - Candidate document upload and authorised download
@@ -84,8 +84,9 @@ An active Admin may list active and deactivated memberships, change an active me
 - Critical Playwright flow
 - Static analysis and CI
 - Demo data and account
-- Production documentation and diagrams
-- HTTPS deployment
+- Portfolio documentation, diagrams and screenshots
+
+Public HTTPS deployment and production infrastructure remain Phase 6 work.
 
 ## 5. Core User Flow
 
@@ -275,7 +276,21 @@ computed only for the route Organisation after active membership resolution.
 Advanced analytics, date-range reporting, charts and cross-tenant reporting are
 excluded.
 
-## 13. Non-MVP Features
+## 13. Portfolio Demo Data
+
+Local portfolio review uses an explicit, opt-in `PortfolioDemoSeeder`. It creates
+only deterministic synthetic identities and recruitment records under the
+reserved `example.test` domain. Its password is supplied through the environment,
+it does not seed Candidate documents, it never runs during normal setup or CI,
+and it refuses production execution. Re-running it must reuse its own known demo
+records without duplicating or overwriting unrelated data.
+
+A future public demo remains Phase 6 work. Deployment must provision a dedicated
+synthetic account from secrets/configuration and deliberately define any reset or
+reseed policy. It must not reuse a developer account, commit a shared password,
+or contain real Candidate information.
+
+## 14. Non-MVP Features
 
 - Custom roles and permission builders
 - Compliance management
@@ -288,7 +303,7 @@ excluded.
 - Advanced analytics and observability
 - Microservices and distributed architecture
 
-## 14. Open Product Decisions
+## 15. Open Product Decisions
 
 These decisions do not block the local foundation but must be resolved before the affected feature:
 
