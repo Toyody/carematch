@@ -172,4 +172,4 @@ compose.e2e.yaml    Isolated browser-test stack
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 5 is implemented. Phase 6A repository-side production readiness is implemented, but no AWS deployment is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.
+The local and CI-tested portfolio scope through Phase 5 and Phase 7A Compliance & Credentials is implemented. Phase 7A tracks Organisation-defined qualifications, Candidate credentials, expiry and deterministic Job-requirement coverage without claiming legal or regulatory certification. Phase 6A repository-side production readiness is implemented, but no AWS deployment is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.

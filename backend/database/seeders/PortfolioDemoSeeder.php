@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Modules\Candidate\Infrastructure\Persistence\Candidate;
+use App\Modules\Candidate\Infrastructure\Persistence\CandidateQualification;
+use App\Modules\Compliance\Infrastructure\Persistence\QualificationDefinition;
 use App\Modules\Identity\Infrastructure\Persistence\User;
 use App\Modules\Organisation\Infrastructure\Persistence\Organisation;
 use App\Modules\Organisation\Infrastructure\Persistence\OrganisationMembership;
@@ -10,6 +12,7 @@ use App\Modules\Recruitment\Domain\ApplicationStatus;
 use App\Modules\Recruitment\Domain\JobStatus;
 use App\Modules\Recruitment\Infrastructure\Persistence\ApplicationStatusHistory;
 use App\Modules\Recruitment\Infrastructure\Persistence\Job;
+use App\Modules\Recruitment\Infrastructure\Persistence\JobQualificationRequirement;
 use App\Modules\Recruitment\Infrastructure\Persistence\RecruitmentApplication;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -48,6 +51,8 @@ final class PortfolioDemoSeeder extends Seeder
             $organisation = $this->organisation($user);
             $candidates = $this->candidates($organisation);
             $jobs = $this->jobs($organisation);
+
+            $this->qualificationData($organisation, $candidates, $jobs);
 
             $this->applications($organisation, $user, $candidates, $jobs);
         });
@@ -262,6 +267,57 @@ final class PortfolioDemoSeeder extends Seeder
         }
 
         return $jobs;
+    }
+
+    /**
+     * @param  array<string, Candidate>  $candidates
+     * @param  array<string, Job>  $jobs
+     */
+    private function qualificationData(Organisation $organisation, array $candidates, array $jobs): void
+    {
+        $definitions = [];
+        foreach ([
+            'Registered Nurse registration' => 'Professional registration',
+            'CPR' => 'Emergency response',
+            'First Aid' => 'Emergency response',
+            'Working with Children Check' => 'Screening',
+        ] as $name => $category) {
+            $definitions[$name] = QualificationDefinition::query()->updateOrCreate(
+                ['organisation_id' => $organisation->getKey(), 'name' => $name],
+                ['category' => $category, 'description' => 'Synthetic portfolio qualification definition.', 'is_active' => true],
+            );
+        }
+
+        $today = CarbonImmutable::today('UTC');
+        $credentials = [
+            [$candidates['avery'], $definitions['Registered Nurse registration'], 'SYNTHETIC-RN-AVERY', $today->addYear()],
+            [$candidates['avery'], $definitions['CPR'], 'SYNTHETIC-CPR-AVERY', $today->addDays(10)],
+            [$candidates['maya'], $definitions['First Aid'], 'SYNTHETIC-FA-MAYA', $today->subDay()],
+            [$candidates['elliot'], $definitions['Working with Children Check'], 'SYNTHETIC-WCC-ELLIOT', null],
+        ];
+        foreach ($credentials as [$candidate, $definition, $number, $expiry]) {
+            CandidateQualification::query()->updateOrCreate(
+                [
+                    'organisation_id' => $organisation->getKey(),
+                    'candidate_id' => $candidate->getKey(),
+                    'credential_number' => $number,
+                ],
+                [
+                    'qualification_definition_id' => $definition->getKey(),
+                    'issuer' => 'Synthetic Training Provider',
+                    'issued_on' => $today->subYear()->format('Y-m-d'),
+                    'expires_on' => $expiry?->format('Y-m-d'),
+                ],
+            );
+        }
+
+        foreach ([$definitions['Registered Nurse registration'], $definitions['CPR'], $definitions['First Aid']] as $definition) {
+            JobQualificationRequirement::query()->firstOrCreate([
+                'organisation_id' => $organisation->getKey(),
+                'job_id' => $jobs['nurse']->getKey(),
+                'qualification_definition_id' => $definition->getKey(),
+            ]);
+        }
     }
 
     /**

@@ -153,6 +153,18 @@ Acceptance locks the invitation and any existing membership in one transaction. 
 
 ## 3. Candidate Tables
 
+### `qualification_definitions`
+
+Organisation-scoped definitions shared by Candidate credentials and Recruitment requirements. Fields are `id`, `organisation_id`, `name`, nullable `category` and `description`, `is_active`, and timestamps. Unique `(organisation_id, id)` supports composite tenant foreign keys; `(organisation_id, is_active, name)` supports the catalogue. Definitions are deactivated rather than deleted. Existing references remain readable, while new credentials and requirements accept active definitions only.
+
+### `candidate_qualifications`
+
+Candidate-owned credential records contain `organisation_id`, `candidate_id`, `qualification_definition_id`, nullable `issuer`, `credential_number`, `issued_on`, `expires_on`, and timestamps. Composite foreign keys to Candidate and qualification definition prevent cross-tenant relationships. Multiple credentials for one Candidate/definition are deliberately allowed for renewals. A CHECK enforces `issued_on <= expires_on` when both dates exist. `(organisation_id, candidate_id, qualification_definition_id)` supports Candidate evaluation and `(organisation_id, expires_on)` supports the tenant expiry view. Current-time expiry is intentionally not a CHECK constraint.
+
+### `job_qualification_requirements`
+
+Required-only Job qualifications contain `organisation_id`, `job_id`, `qualification_definition_id`, and timestamps. Composite foreign keys prevent cross-tenant Job/definition relationships. Unique `(organisation_id, job_id, qualification_definition_id)` prevents duplicate requirements. Weighted, preferred and scored requirements are deferred to Phase 7C.
+
 ### `candidates`
 
 Tenant-owned candidate records.

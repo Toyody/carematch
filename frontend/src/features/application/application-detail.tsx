@@ -10,6 +10,7 @@ import {
   type OrganisationRole,
 } from "@/features/organisation/api";
 import { ApiError } from "@/lib/api/client";
+import { QualificationCoverage } from "@/features/compliance/qualification-coverage";
 import {
   getApplication,
   getApplicationHistory,
@@ -164,6 +165,12 @@ export function ApplicationDetail({
           <dd>{new Date(application.applied_at).toLocaleString()}</dd>
         </div>
       </dl>
+
+      <QualificationCoverage
+        candidateId={application.candidate.id}
+        jobId={application.job.id}
+        organisationId={organisationId}
+      />
 
       {actions.length ? (
         <section aria-labelledby="transition-heading">

@@ -7,12 +7,14 @@ use App\Modules\Candidate\Application\Contracts\CandidateDetails;
 use App\Modules\Candidate\Application\Contracts\CandidateDocumentStorage;
 use App\Modules\Candidate\Application\Contracts\CandidateDocumentStore;
 use App\Modules\Candidate\Application\Contracts\CandidateLister;
+use App\Modules\Candidate\Application\Contracts\CandidateQualificationStore;
 use App\Modules\Candidate\Application\Contracts\CandidateReferenceLookup;
 use App\Modules\Candidate\Application\Contracts\CandidateUpdater;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateCreator;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateDetails;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateDocumentStore;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateLister;
+use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateQualificationStore;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateReferenceLookup;
 use App\Modules\Candidate\Infrastructure\Persistence\EloquentCandidateUpdater;
 use App\Modules\Candidate\Infrastructure\Storage\LaravelCandidateDocumentStorage;
@@ -30,6 +32,7 @@ final class CandidateServiceProvider extends ServiceProvider
         $this->app->bind(CandidateLister::class, EloquentCandidateLister::class);
         $this->app->bind(CandidateDetails::class, EloquentCandidateDetails::class);
         $this->app->bind(CandidateUpdater::class, EloquentCandidateUpdater::class);
+        $this->app->bind(CandidateQualificationStore::class, EloquentCandidateQualificationStore::class);
         $this->app->bind(CandidateReferenceLookup::class, EloquentCandidateReferenceLookup::class);
         $this->app->bind(CandidateDocumentStore::class, EloquentCandidateDocumentStore::class);
         $this->app->bind(CandidateDocumentStorage::class, LaravelCandidateDocumentStorage::class);
@@ -57,5 +60,7 @@ final class CandidateServiceProvider extends ServiceProvider
             CandidatePolicy::MANAGE_DOCUMENTS,
             static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->manageDocuments($user, $tenant),
         );
+        Gate::define(CandidatePolicy::VIEW_QUALIFICATIONS, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->viewQualifications($user, $tenant));
+        Gate::define(CandidatePolicy::MANAGE_QUALIFICATIONS, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->manageQualifications($user, $tenant));
     }
 }

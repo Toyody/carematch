@@ -12,6 +12,7 @@ use App\Modules\Recruitment\Application\Contracts\JobCreator;
 use App\Modules\Recruitment\Application\Contracts\JobDetails;
 use App\Modules\Recruitment\Application\Contracts\JobLifecycleTransitioner;
 use App\Modules\Recruitment\Application\Contracts\JobLister;
+use App\Modules\Recruitment\Application\Contracts\JobQualificationRequirementStore;
 use App\Modules\Recruitment\Application\Contracts\JobUpdater;
 use App\Modules\Recruitment\Infrastructure\Persistence\EloquentApplicationCreator;
 use App\Modules\Recruitment\Infrastructure\Persistence\EloquentApplicationDetails;
@@ -22,6 +23,7 @@ use App\Modules\Recruitment\Infrastructure\Persistence\EloquentJobCreator;
 use App\Modules\Recruitment\Infrastructure\Persistence\EloquentJobDetails;
 use App\Modules\Recruitment\Infrastructure\Persistence\EloquentJobLifecycleTransitioner;
 use App\Modules\Recruitment\Infrastructure\Persistence\EloquentJobLister;
+use App\Modules\Recruitment\Infrastructure\Persistence\EloquentJobQualificationRequirementStore;
 use App\Modules\Recruitment\Infrastructure\Persistence\EloquentJobUpdater;
 use App\Modules\Recruitment\Interfaces\Authorization\ApplicationPolicy;
 use App\Modules\Recruitment\Interfaces\Authorization\JobPolicy;
@@ -42,6 +44,7 @@ final class RecruitmentServiceProvider extends ServiceProvider
         $this->app->bind(JobLister::class, EloquentJobLister::class);
         $this->app->bind(JobDetails::class, EloquentJobDetails::class);
         $this->app->bind(JobUpdater::class, EloquentJobUpdater::class);
+        $this->app->bind(JobQualificationRequirementStore::class, EloquentJobQualificationRequirementStore::class);
         $this->app->bind(JobLifecycleTransitioner::class, EloquentJobLifecycleTransitioner::class);
     }
 
@@ -54,5 +57,7 @@ final class RecruitmentServiceProvider extends ServiceProvider
         Gate::define(JobPolicy::CREATE, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->write($user, $tenant));
         Gate::define(JobPolicy::UPDATE, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->write($user, $tenant));
         Gate::define(JobPolicy::TRANSITION, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->write($user, $tenant));
+        Gate::define(JobPolicy::VIEW_QUALIFICATION_REQUIREMENTS, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->view($user, $tenant));
+        Gate::define(JobPolicy::MANAGE_QUALIFICATION_REQUIREMENTS, static fn (Authenticatable $user, TenantContext $tenant): bool => $policy->write($user, $tenant));
     }
 }

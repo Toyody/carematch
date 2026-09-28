@@ -17,6 +17,7 @@ import {
   type JobTransition,
 } from "./api";
 import { JobFormFields, jobInput } from "./job-form-fields";
+import { JobQualificationRequirements } from "@/features/compliance/job-qualification-requirements";
 
 interface Result {
   error: unknown;
@@ -152,6 +153,11 @@ export function JobDetail({
       ) : (
         <ReadOnly job={job} />
       )}
+      <JobQualificationRequirements
+        jobId={jobId}
+        mayManage={mayWrite}
+        organisationId={organisationId}
+      />
       <Link href={`/organisations/${organisationId}/jobs`}>Back to jobs</Link>
     </Shell>
   );

@@ -41,7 +41,9 @@ backend/app/
 
 Laravel bootstrap, shared framework configuration and genuinely cross-cutting providers may remain in conventional Laravel locations. A generic `Shared` or `Common` module must not become a dumping ground.
 
-Compliance, matching, asynchronous messaging and AI are future concerns and must not be represented by empty MVP modules.
+Phase 7A introduces a real Compliance module because it owns the shared Organisation qualification catalogue, date-based expiry semantics and deterministic Candidate/Job requirement evaluator. Candidate credentials remain owned by Candidate and Job requirements remain owned by Recruitment. Their Infrastructure adapters compose persisted data through focused Compliance Application contracts; Application and Domain code do not import another module's Eloquent models. Matching, asynchronous messaging and AI remain future concerns and must not be represented by empty modules.
+
+Qualification coverage is calculated in bounded reads: the tenant-scoped Job and Candidate are verified, required definitions are loaded in one query, and relevant Candidate evidence is loaded in one query. The framework-independent evaluator receives those records plus an explicit UTC date and warning threshold. No compliance rule is duplicated in React, and no global Candidate compliance flag is stored.
 
 ## 3. Module Ownership
 

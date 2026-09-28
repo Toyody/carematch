@@ -16,6 +16,10 @@ final class JobPolicy
 
     public const string TRANSITION = 'jobs.transition';
 
+    public const string VIEW_QUALIFICATION_REQUIREMENTS = 'job-qualification-requirements.view';
+
+    public const string MANAGE_QUALIFICATION_REQUIREMENTS = 'job-qualification-requirements.manage';
+
     public function view(Authenticatable $user, TenantContext $tenant): bool
     {
         return $user->getAuthIdentifier() === $tenant->userId;

@@ -86,7 +86,17 @@ An active Admin may list active and deactivated memberships, change an active me
 - Demo data and account
 - Portfolio documentation, diagrams and screenshots
 
-Public HTTPS deployment and production infrastructure remain Phase 6 work.
+Public HTTPS deployment and production infrastructure remain Phase 6 work. Phase 7A adds Organisation-defined qualification and certification tracking, expiry visibility and deterministic Job-requirement coverage. CareMatch reports only whether Organisation-recorded Candidate credentials satisfy Organisation-recorded Job requirements; it does not certify legal or regulatory compliance or determine whether a person is legally permitted to work.
+
+### Qualification and credential tracking
+
+Each Organisation maintains its own qualification catalogue. Definitions have a name, optional category and description, and an active/inactive lifecycle. Inactive definitions remain visible wherever historical Candidate credentials or Job requirements reference them, but cannot be selected for new records.
+
+Admin and Recruiter memberships may record and correct Candidate credentials and manage required Job qualifications. Hiring Managers have read-only access. Qualification catalogue mutation is Admin-only. Candidate credentials may contain an optional issuer, reference number, issue date and expiry date. Multiple records for one definition are allowed so renewals are not destroyed.
+
+Expiry uses UTC calendar dates and a configurable 30-day warning window. A credential is expired only when `expires_on` is before today; it remains valid through its expiry date and is labelled expiring when its expiry date is between today and the warning boundary inclusive. A null expiry is non-expiring and valid. Expiry tracking is synchronous and does not send notifications.
+
+For each required Job qualification, the backend chooses the best Candidate evidence deterministically: valid, then expiring, then expired, otherwise missing. Overall requirement coverage is `satisfied`, `attention_required` when every requirement is usable but at least one is expiring, or `not_satisfied` when any requirement is expired or missing. This state is contextual to a Candidate and Job, never a global Candidate status.
 
 ## 5. Core User Flow
 
