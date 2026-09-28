@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 
 import { FormError } from "@/components/forms/form-error";
 import { useAuth } from "@/features/identity/auth-context";
+import { isPublicDemo } from "@/lib/public-demo";
 
 export default function LoginPage() {
   const { login, user } = useAuth();
@@ -62,12 +63,16 @@ export default function LoginPage() {
             </button>
           </form>
         )}
-        <p>
-          <Link href="/forgot-password">Forgot your password?</Link>
-        </p>
-        <p>
-          Need an account? <Link href="/register">Register</Link>
-        </p>
+        {!isPublicDemo ? (
+          <>
+            <p>
+              <Link href="/forgot-password">Forgot your password?</Link>
+            </p>
+            <p>
+              Need an account? <Link href="/register">Register</Link>
+            </p>
+          </>
+        ) : null}
       </section>
     </main>
   );

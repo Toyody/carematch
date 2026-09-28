@@ -13,6 +13,7 @@ return [
     ],
     'portfolio_demo' => [
         'enabled' => env('CARE_MATCH_DEMO_DATA', false),
+        'public_mode' => env('CARE_MATCH_PUBLIC_DEMO', false),
         'email' => env('CARE_MATCH_DEMO_EMAIL', 'demo.admin@example.test'),
         'password' => env('CARE_MATCH_DEMO_PASSWORD'),
     ],

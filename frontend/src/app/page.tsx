@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ApiHealth } from "@/components/system/api-health";
 import { useAuth } from "@/features/identity/auth-context";
 import { OrganisationPanel } from "@/features/organisation/organisation-panel";
+import { isPublicDemo } from "@/lib/public-demo";
 
 export default function Home() {
   const { error, isLoading, logout, user } = useAuth();
@@ -51,7 +52,7 @@ export default function Home() {
         {!isLoading && !user ? (
           <nav aria-label="Authentication">
             <Link href="/login">Login</Link>
-            <Link href="/register">Register</Link>
+            {!isPublicDemo ? <Link href="/register">Register</Link> : null}
           </nav>
         ) : null}
         {error ? <p role="alert">{error}</p> : null}

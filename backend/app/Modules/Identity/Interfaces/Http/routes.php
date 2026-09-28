@@ -13,13 +13,16 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->name('api.v1.auth.')->group(function (): void {
     Route::middleware(EnsureGuestApi::class)->group(function (): void {
         Route::post('/register', RegisterController::class)
+            ->middleware('public-demo.restrict:registration')
             ->middleware(ThrottleRequests::using('identity-registration'))
             ->name('register');
         Route::post('/login', LoginController::class)->name('login');
         Route::post('/forgot-password', ForgotPasswordController::class)
+            ->middleware('public-demo.restrict:password-recovery')
             ->middleware(ThrottleRequests::using('identity-forgot-password'))
             ->name('forgot-password');
         Route::post('/reset-password', ResetPasswordController::class)
+            ->middleware('public-demo.restrict:password-recovery')
             ->middleware(ThrottleRequests::using('identity-reset-password'))
             ->name('reset-password');
     });

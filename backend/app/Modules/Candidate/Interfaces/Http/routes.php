@@ -29,12 +29,14 @@ Route::middleware(['auth:sanctum', ResolveTenantContext::class])
             ->name('api.v1.candidate-documents.index')
             ->whereNumber('candidate');
         Route::post('/candidates/{candidate}/documents', UploadCandidateDocumentController::class)
+            ->middleware('public-demo.restrict:candidate-document-write')
             ->name('api.v1.candidate-documents.store')
             ->whereNumber('candidate');
         Route::get('/candidates/{candidate}/documents/{document}/download', DownloadCandidateDocumentController::class)
             ->name('api.v1.candidate-documents.download')
             ->whereNumber(['candidate', 'document']);
         Route::delete('/candidates/{candidate}/documents/{document}', DeleteCandidateDocumentController::class)
+            ->middleware('public-demo.restrict:candidate-document-write')
             ->name('api.v1.candidate-documents.destroy')
             ->whereNumber(['candidate', 'document']);
     });

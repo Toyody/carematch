@@ -5,11 +5,26 @@ import { FormEvent, useState } from "react";
 
 import { FormError } from "@/components/forms/form-error";
 import { forgotPassword } from "@/features/identity/api";
+import { isPublicDemo } from "@/lib/public-demo";
 
 export default function ForgotPasswordPage() {
   const [error, setError] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  if (isPublicDemo) {
+    return (
+      <main>
+        <section className="foundation-card auth-card">
+          <h1>Forgot password</h1>
+          <p role="status">
+            Password recovery is unavailable in the public portfolio demo.
+          </p>
+          <Link href="/login">Back to login</Link>
+        </section>
+      </main>
+    );
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

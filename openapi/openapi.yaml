@@ -21,6 +21,12 @@ info:
     adds private Candidate documents. Document contents have no public storage URL;
     every metadata, download, upload, and delete operation is tenant-authorised.
     Phase 5B adds a small tenant-scoped Dashboard read model.
+
+    Deployments configured as the public portfolio demo return `403` for
+    registration, Organisation creation, password recovery, invitation creation,
+    and Candidate document upload/deletion. These deployment restrictions are
+    enforced by the backend; ordinary non-demo deployments retain the documented
+    role and validation behaviour.
   license:
     name: All rights reserved
 servers:
@@ -68,6 +74,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/GuestOnlyConflict"
         "419":
@@ -181,6 +189,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForgotPasswordAcceptedResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/GuestOnlyConflict"
         "419":
@@ -214,6 +224,8 @@ paths:
       responses:
         "204":
           description: The password was reset and existing user sessions were invalidated.
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/GuestOnlyConflict"
         "419":
@@ -277,6 +289,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrganisationResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "419":
@@ -1425,7 +1439,9 @@ components:
           schema:
             $ref: "#/components/schemas/UnauthenticatedError"
     Forbidden:
-      description: The active tenant member does not have the required role for this operation.
+      description: |
+        The active tenant member does not have the required role, or this write
+        operation is disabled by the public portfolio demo deployment policy.
       content:
         application/json:
           schema:
@@ -2495,7 +2511,9 @@ components:
       properties:
         message:
           type: string
-          const: This action is unauthorized.
+          examples:
+            - This action is unauthorized.
+            - Registration is unavailable in the public portfolio demo.
     NotFoundError:
       type: object
       additionalProperties: false

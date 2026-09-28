@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { OrganisationDashboard } from "@/features/dashboard/organisation-dashboard";
 import { useAuth } from "@/features/identity/auth-context";
 import { ApiError } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/public-demo";
 
 import { getOrganisation, listOrganisations, type Organisation } from "./api";
 import { OrganisationSelector } from "./organisation-selector";
@@ -102,7 +103,7 @@ export function OrganisationWorkspace({
           <p>You must be signed in to access an organisation workspace.</p>
           <nav aria-label="Authentication">
             <Link href="/login">Login</Link>
-            <Link href="/register">Register</Link>
+            {!isPublicDemo ? <Link href="/register">Register</Link> : null}
           </nav>
         </section>
       </main>

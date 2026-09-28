@@ -2,7 +2,7 @@
 
 ## 1. Architectural Style
 
-CareMatch is a modular monolith using pragmatic Clean Architecture. The current local and CI system runs as one Laravel backend, one Next.js frontend and one PostgreSQL database. Public deployment remains Phase 6 work.
+CareMatch is a modular monolith using pragmatic Clean Architecture. The local and CI system runs as one Laravel backend, one Next.js frontend and one PostgreSQL database. Phase 6A adds repository-side production readiness; actual AWS deployment and operational verification remain Phase 6B/6C work.
 
 The architecture protects meaningful business rules, tenant isolation and data integrity while preserving Laravel conventions and avoiding ceremony. Microservices, Kubernetes, Kafka, GraphQL, CQRS and event sourcing are not part of the MVP architecture.
 

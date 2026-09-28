@@ -5,11 +5,16 @@ import { FormEvent, useState } from "react";
 
 import { FormError } from "@/components/forms/form-error";
 import { useAuth } from "@/features/identity/auth-context";
+import { isPublicDemo } from "@/lib/public-demo";
 
 export default function RegisterPage() {
   const { register, user } = useAuth();
   const [error, setError] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (isPublicDemo) {
+    return <UnavailablePublicDemoOperation operation="Registration" />;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,6 +84,20 @@ export default function RegisterPage() {
         <p>
           Already registered? <Link href="/login">Login</Link>
         </p>
+      </section>
+    </main>
+  );
+}
+
+function UnavailablePublicDemoOperation({ operation }: { operation: string }) {
+  return (
+    <main>
+      <section className="foundation-card auth-card">
+        <h1>{operation}</h1>
+        <p role="status">
+          {operation} is unavailable in the public portfolio demo.
+        </p>
+        <Link href="/login">Continue to login</Link>
       </section>
     </main>
   );

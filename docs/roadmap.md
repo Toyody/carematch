@@ -202,19 +202,42 @@ Exit criteria:
 
 ## Phase 6 — Deployment
 
-- [ ] Confirm production domain topology for Sanctum, CORS and CSRF
-- [ ] AWS deployment
-- [ ] HTTPS
-- [ ] Secrets management
-- [ ] Database backup and restore procedure
-- [ ] Production migrations and rollback procedure
-- [ ] Basic health checks and operational logging
+### Phase 6A — Repository-side production readiness
+
+- [x] Define the same-origin topology for Sanctum, CORS and CSRF
+- [x] Add production Laravel and Next.js container images
+- [x] Add local production-image and same-origin routing validation
+- [x] Add database-cache migrations for distributed backend rate limits
+- [x] Add the private S3 Candidate-document adapter configuration
+- [x] Add backend-enforced public-demo restrictions and frontend demo UX
+- [x] Add guarded production demo provisioning without destructive reset automation
+- [x] Add a manual GitHub OIDC deployment workflow
+- [x] Document AWS bootstrap, migration, rollback, backup and restore procedures
+- [x] Add production image validation to CI
+
+### Phase 6B — AWS provisioning and HTTPS deployment
+
+- [ ] Confirm the controlled production hostname and AWS region
+- [ ] Provision or configure ECR, ECS Fargate, ALB, ACM, RDS and private S3
+- [ ] Configure Route 53 or external DNS
+- [ ] Configure deployed secrets and GitHub OIDC permissions
+- [ ] Deploy successfully through the manual workflow
+- [ ] Verify the application is publicly reachable over HTTPS
+
+### Phase 6C — Production and operational verification
+
+- [ ] Complete public browser authentication and recruitment-flow smoke tests
+- [ ] Verify deployed private S3 document behaviour with synthetic data
+- [ ] Verify CloudWatch log delivery and health visibility
+- [ ] Verify RDS automated backup settings
+- [ ] Perform and record a database restore exercise
+- [ ] Verify the documented application rollback procedure
 
 Exit criteria:
 
 - The application is publicly accessible over HTTPS.
 - No real candidate data is required for the public demo.
-- Backup, secrets and deployment procedures are documented.
+- Backup, secrets and deployment procedures are documented and the deployed controls are verified.
 
 ## Phase 7 — Advanced Workforce Features
 

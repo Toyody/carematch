@@ -53,7 +53,7 @@ Laravel REST API
         └── Private document storage
 ```
 
-See the [architecture overview](docs/diagrams/architecture.md), [entity-relationship diagram](docs/diagrams/entity-relationship.md), and [architecture decisions](docs/architecture.md) for more detail.
+See the [architecture overview](docs/diagrams/architecture.md), [entity-relationship diagram](docs/diagrams/entity-relationship.md), [architecture decisions](docs/architecture.md), and [production deployment runbook](docs/deployment.md) for more detail.
 
 ### Tenant isolation
 
@@ -100,6 +100,12 @@ Run the isolated browser flow:
 make test-e2e
 ```
 
+Validate the production images and local same-origin routing:
+
+```bash
+make test-production-images
+```
+
 The checks cover backend and frontend tests, static analysis, linting and formatting, dependency audits, production frontend build, OpenAPI linting, PostgreSQL-backed constraints, tenant-isolation scenarios, and the critical end-to-end flow.
 
 ## Synthetic local demo
@@ -114,7 +120,7 @@ The default account is `demo.admin@example.test`. You can override it with `CARE
 
 The seeded organisation contains realistic but fictional candidates, jobs, one application in each pipeline status, and coherent transition histories. Never use real personal information in demo data.
 
-A future Phase 6 public demo would provision a dedicated synthetic account at deployment time, source credentials from deployment secrets, and use an explicitly configured reset/reseed policy. It will not reuse a developer account or commit a shared password; no reset worker is part of Phase 5.
+Phase 6A adds a separate, explicitly guarded production public-demo provisioning command. It requires public-demo mode, an `@example.test` identity, a deployment-injected password and an operator confirmation flag. It does not run at startup, truncate data or provide an automated destructive reset. See the deployment runbook for the exact procedure.
 
 ## Local development
 
@@ -150,6 +156,7 @@ make demo-seed   # Seed deterministic synthetic portfolio data
 - [Architecture](docs/architecture.md)
 - [Database design](docs/database-design.md)
 - [Roadmap](docs/roadmap.md)
+- [Production deployment runbook](docs/deployment.md)
 
 ## Repository structure
 
@@ -165,4 +172,4 @@ compose.e2e.yaml    Isolated browser-test stack
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 5 is implemented. Production deployment, HTTPS/domain configuration, managed infrastructure, production mail and storage providers, observability, backup/restore drills, and public demo hardening are intentionally deferred to Phase 6.
+The local and CI-tested portfolio scope through Phase 5 is implemented. Phase 6A repository-side production readiness is implemented, but no AWS deployment is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.

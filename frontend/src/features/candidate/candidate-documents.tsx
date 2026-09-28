@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { FormError } from "@/components/forms/form-error";
 import { ApiError } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/public-demo";
 
 import {
   deleteCandidateDocument,
@@ -184,7 +185,7 @@ export function CandidateDocuments({
                 >
                   Download
                 </button>
-                {mayManage ? (
+                {mayManage && !isPublicDemo ? (
                   <button
                     disabled={busyDocumentId === document.id}
                     onClick={() => void handleDelete(document)}
@@ -199,7 +200,7 @@ export function CandidateDocuments({
         </ul>
       )}
 
-      {mayManage ? (
+      {mayManage && !isPublicDemo ? (
         <form onSubmit={handleUpload}>
           <label htmlFor="candidate-document">Choose document</label>
           <input
@@ -212,6 +213,8 @@ export function CandidateDocuments({
             {isUploading ? "Uploading…" : "Upload document"}
           </button>
         </form>
+      ) : isPublicDemo ? (
+        <p>Document changes are unavailable in the public portfolio demo.</p>
       ) : (
         <p>Your Organisation role has read-only document access.</p>
       )}

@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/organisations', ListOrganisationsController::class)
         ->name('api.v1.organisations.index');
     Route::post('/organisations', CreateOrganisationController::class)
+        ->middleware('public-demo.restrict:organisation-creation')
         ->name('api.v1.organisations.store');
 
     Route::middleware(ResolveTenantContext::class)
@@ -35,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
                 ->name('api.v1.organisation-invitations.index')
                 ->whereNumber('organisation');
             Route::post('/organisations/{organisation}/invitations', CreateOrganisationInvitationController::class)
+                ->middleware('public-demo.restrict:invitation-creation')
                 ->name('api.v1.organisation-invitations.store')
                 ->whereNumber('organisation');
             Route::post('/organisations/{organisation}/invitations/{invitation}/revoke', RevokeOrganisationInvitationController::class)

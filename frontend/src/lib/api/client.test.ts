@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiDownload, apiRequest, apiRequestForm } from "./client";
+import {
+  ApiError,
+  apiDownload,
+  apiEndpoint,
+  apiRequest,
+  apiRequestForm,
+  csrfEndpoint,
+} from "./client";
 
 function jsonResponse(
   body: unknown,
@@ -28,6 +35,11 @@ describe("API client", () => {
     clearCookies();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("uses relative API and CSRF paths for the same-origin production setting", () => {
+    expect(apiEndpoint("/auth/me", "")).toBe("/api/v1/auth/me");
+    expect(csrfEndpoint("")).toBe("/sanctum/csrf-cookie");
   });
 
   it("bootstraps CSRF and sends the URL-decoded XSRF token with credentials", async () => {

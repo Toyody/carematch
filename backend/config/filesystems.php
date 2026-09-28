@@ -46,6 +46,17 @@ return [
             'report' => false,
         ],
 
+        'candidate_documents_s3' => [
+            'driver' => 's3',
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_CANDIDATE_DOCUMENTS_BUCKET'),
+            'root' => env('AWS_CANDIDATE_DOCUMENTS_PREFIX', 'candidate-documents'),
+            'visibility' => 'private',
+            'use_path_style_endpoint' => false,
+            'throw' => true,
+            'report' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

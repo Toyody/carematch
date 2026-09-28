@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import { FormError } from "@/components/forms/form-error";
+import { isPublicDemo } from "@/lib/public-demo";
 
 import {
   createOrganisation,
@@ -88,14 +89,20 @@ export function OrganisationPanel() {
         <OrganisationSelector organisations={organisations} />
       ) : null}
 
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="organisation-name">Organisation name</label>
-        <input id="organisation-name" maxLength={255} name="name" required />
-        <FormError error={createError} />
-        <button disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Creating…" : "Create organisation"}
-        </button>
-      </form>
+      {isPublicDemo ? (
+        <p>
+          Organisation creation is unavailable in the public portfolio demo.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="organisation-name">Organisation name</label>
+          <input id="organisation-name" maxLength={255} name="name" required />
+          <FormError error={createError} />
+          <button disabled={isSubmitting} type="submit">
+            {isSubmitting ? "Creating…" : "Create organisation"}
+          </button>
+        </form>
+      )}
     </section>
   );
 }

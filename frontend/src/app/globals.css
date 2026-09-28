@@ -19,6 +19,16 @@ body {
   overflow-x: hidden;
 }
 
+.public-demo-banner {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  background: var(--warning);
+  text-align: center;
+  font-weight: 700;
+}
+
 body {
   min-height: 100%;
   color: var(--foreground);
