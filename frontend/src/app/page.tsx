@@ -28,11 +28,10 @@ export default function Home() {
   return (
     <main>
       <section aria-labelledby="page-title" className="foundation-card">
-        <p className="eyebrow">Phase 2-B Organisation foundation</p>
+        <p className="eyebrow">Portfolio workspace</p>
         <h1 id="page-title">CareMatch</h1>
         <p>
-          Healthcare workforce and recruitment, built one focused slice at a
-          time.
+          Tenant-safe healthcare recruitment workflows in one focused workspace.
         </p>
 
         {isLoading ? <p role="status">Checking your session…</p> : null}

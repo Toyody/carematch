@@ -2,7 +2,7 @@
 
 ## 1. Architectural Style
 
-CareMatch is a modular monolith using pragmatic Clean Architecture. It is deployed as one Laravel backend, one Next.js frontend and one PostgreSQL database.
+CareMatch is a modular monolith using pragmatic Clean Architecture. The current local and CI system runs as one Laravel backend, one Next.js frontend and one PostgreSQL database. Public deployment remains Phase 6 work.
 
 The architecture protects meaningful business rules, tenant isolation and data integrity while preserving Laravel conventions and avoiding ceremony. Microservices, Kubernetes, Kafka, GraphQL, CQRS and event sourcing are not part of the MVP architecture.
 
@@ -317,3 +317,11 @@ Use Form Requests, Policies, Gates, API Resources, Eloquent, migrations and serv
 Simple CRUD does not automatically require factories, Value Objects, domain services, mappers or multiple DTO layers. Pure Domain objects are used where meaningful rules benefit from framework independence, especially recruitment state transitions.
 
 If an abstraction does not protect a rule, isolate a real dependency or improve testability and maintenance, do not add it.
+
+## 12. Portfolio diagrams
+
+The recruiter-readable [architecture overview](diagrams/architecture.md) shows
+the current runtime and module boundaries. The
+[entity-relationship diagram](diagrams/entity-relationship.md) is derived from
+the implemented migrations. Neither diagram presents future AWS infrastructure
+as current functionality.

@@ -186,12 +186,12 @@ The database cannot link a candidate and job from different organisations.
 
 ### Portfolio assets
 
-- [ ] Safe demo data
-- [ ] Demo account strategy
-- [ ] Architecture diagram
-- [ ] ER diagram
-- [ ] Screenshots
-- [ ] Production-quality README
+- [x] Safe demo data
+- [x] Demo account strategy
+- [x] Architecture diagram
+- [x] ER diagram
+- [x] Screenshots
+- [x] Production-quality README
 
 Exit criteria:
 

@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := docker compose
 
-.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate test test-backend test-frontend test-e2e lint analyse format build audit openapi-lint check
+.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e lint analyse format build audit openapi-lint check
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -36,6 +36,14 @@ psql:
 
 migrate:
 	$(DOCKER_COMPOSE) run --rm backend php artisan migrate
+
+demo-seed:
+	@test -n "$$CARE_MATCH_DEMO_PASSWORD" || (echo "CARE_MATCH_DEMO_PASSWORD is required." >&2; exit 1)
+	@$(DOCKER_COMPOSE) run --rm \
+		-e CARE_MATCH_DEMO_DATA=true \
+		-e CARE_MATCH_DEMO_EMAIL="$${CARE_MATCH_DEMO_EMAIL:-demo.admin@example.test}" \
+		-e CARE_MATCH_DEMO_PASSWORD \
+		backend php artisan db:seed --class=PortfolioDemoSeeder --force
 
 test: test-backend test-frontend
 

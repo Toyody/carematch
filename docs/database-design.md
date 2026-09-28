@@ -235,7 +235,6 @@ Initial fields:
 - `closes_at`, nullable
 - `created_at`
 - `updated_at`
-- `deleted_at`, if soft deletion is adopted
 
 Constraints:
 
