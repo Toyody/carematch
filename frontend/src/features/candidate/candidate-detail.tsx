@@ -14,6 +14,7 @@ import { ApiError } from "@/lib/api/client";
 import { getCandidate, updateCandidate, type Candidate } from "./api";
 import { CandidateFormFields, candidateInput } from "./candidate-form-fields";
 import { CandidateDocuments } from "./candidate-documents";
+import { CandidateQualifications } from "@/features/compliance/candidate-qualifications";
 
 interface CandidateDetailResult {
   candidate: Candidate | null;
@@ -161,6 +162,11 @@ export function CandidateDetail({
         <CandidateDocuments
           candidateId={candidateId}
           key={resultKey}
+          mayManage={mayWrite}
+          organisationId={organisationId}
+        />
+        <CandidateQualifications
+          candidateId={candidateId}
           mayManage={mayWrite}
           organisationId={organisationId}
         />

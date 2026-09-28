@@ -241,14 +241,27 @@ Exit criteria:
 
 ## Phase 7 — Advanced Workforce Features
 
-Implemented only after v1.0 is stable:
+### Phase 7A — Compliance & Credentials
 
-- [ ] Compliance management
-- [ ] Qualifications and certifications
-- [ ] Expiry tracking
+- [x] Organisation-defined qualification catalogue with active/inactive lifecycle
+- [x] Candidate qualifications and certifications, including renewals and date-only expiry
+- [x] Required Job qualifications
+- [x] Deterministic Candidate/Job qualification requirement coverage
+- [x] Organisation-scoped expired and expiring credential view
+- [x] Tenant isolation, RBAC, PostgreSQL constraints and boundary tests
+- [x] Synthetic portfolio qualification data and accessible frontend workflows
+
+### Phase 7B — Audit Trail
+
 - [ ] Broader audit logging
+
+### Phase 7C — Deterministic Matching & PostGIS
+
 - [ ] Candidate matching engine
 - [ ] PostGIS distance matching
+
+### Phase 7D — Advanced Analytics
+
 - [ ] Advanced analytics
 
 ## Phase 8 — Infrastructure and Asynchronous Processing

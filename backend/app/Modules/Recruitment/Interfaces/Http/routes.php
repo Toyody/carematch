@@ -1,10 +1,13 @@
 <?php
 
 use App\Modules\Organisation\Interfaces\Http\Middleware\ResolveTenantContext;
+use App\Modules\Recruitment\Interfaces\Http\Controllers\AddJobQualificationRequirementController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\CreateApplicationController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\CreateJobController;
+use App\Modules\Recruitment\Interfaces\Http\Controllers\DeleteJobQualificationRequirementController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ListApplicationHistoryController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ListApplicationsController;
+use App\Modules\Recruitment\Interfaces\Http\Controllers\ListJobQualificationRequirementsController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ListJobsController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ShowApplicationController;
 use App\Modules\Recruitment\Interfaces\Http\Controllers\ShowJobController;
@@ -30,6 +33,10 @@ Route::middleware(['auth:sanctum', ResolveTenantContext::class])
         Route::post('/jobs', CreateJobController::class)->name('api.v1.jobs.store');
         Route::get('/jobs/{job}', ShowJobController::class)->whereNumber('job')->name('api.v1.jobs.show');
         Route::patch('/jobs/{job}', UpdateJobController::class)->whereNumber('job')->name('api.v1.jobs.update');
+        Route::get('/jobs/{job}/qualification-requirements', ListJobQualificationRequirementsController::class)->whereNumber('job');
+        Route::post('/jobs/{job}/qualification-requirements', AddJobQualificationRequirementController::class)->whereNumber('job');
+        Route::delete('/jobs/{job}/qualification-requirements/{requirement}', DeleteJobQualificationRequirementController::class)
+            ->whereNumber(['job', 'requirement']);
 
         foreach (['open', 'close', 'archive'] as $transition) {
             Route::post("/jobs/{job}/{$transition}", TransitionJobController::class)

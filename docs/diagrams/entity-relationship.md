@@ -109,6 +109,29 @@ erDiagram
         text note
         timestamp created_at
     }
+    QUALIFICATION_DEFINITIONS {
+        bigint id PK
+        bigint organisation_id FK
+        string name
+        string category
+        boolean is_active
+    }
+    CANDIDATE_QUALIFICATIONS {
+        bigint id PK
+        bigint organisation_id FK
+        bigint candidate_id FK
+        bigint qualification_definition_id FK
+        string issuer
+        string credential_number
+        date issued_on
+        date expires_on
+    }
+    JOB_QUALIFICATION_REQUIREMENTS {
+        bigint id PK
+        bigint organisation_id FK
+        bigint job_id FK
+        bigint qualification_definition_id FK
+    }
 
     USERS ||--o{ ORGANISATION_MEMBERSHIPS : has
     ORGANISATIONS ||--o{ ORGANISATION_MEMBERSHIPS : contains
@@ -125,6 +148,11 @@ erDiagram
     ORGANISATION_MEMBERSHIPS ||--o{ APPLICATIONS : creates
     APPLICATIONS ||--|{ APPLICATION_STATUS_HISTORY : records
     ORGANISATION_MEMBERSHIPS ||--o{ APPLICATION_STATUS_HISTORY : changes
+    ORGANISATIONS ||--o{ QUALIFICATION_DEFINITIONS : defines
+    CANDIDATES ||--o{ CANDIDATE_QUALIFICATIONS : holds
+    QUALIFICATION_DEFINITIONS ||--o{ CANDIDATE_QUALIFICATIONS : classifies
+    JOBS ||--o{ JOB_QUALIFICATION_REQUIREMENTS : requires
+    QUALIFICATION_DEFINITIONS ||--o{ JOB_QUALIFICATION_REQUIREMENTS : specifies
 ```
 
 ## Integrity notes
@@ -150,6 +178,10 @@ erDiagram
   expose personal-access-token product functionality.
 - PostgreSQL check constraints restrict membership roles, Job states,
   Application states, invitation state combinations and positive document size.
+- Qualification credentials and Job requirements use composite tenant foreign
+  keys. Candidate renewals are allowed, while duplicate Job requirements are
+  rejected. Issue/expiry dates use `DATE`, with a CHECK for chronological order;
+  time-dependent expiry classification remains application logic.
 
 See [database design](../database-design.md) for exact constraints, indexes and
 transaction behaviour.

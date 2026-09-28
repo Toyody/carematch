@@ -18,6 +18,7 @@ flowchart TB
             organisation[Organisation]
             candidate[Candidate]
             recruitment[Recruitment]
+            compliance[Compliance catalogue and evaluator]
             dashboard[Dashboard read model]
         end
     end
@@ -35,12 +36,14 @@ flowchart TB
     http --> identity
     tenant --> candidate
     tenant --> recruitment
+    tenant --> compliance
     tenant --> dashboard
 
     identity --> postgres
     organisation --> postgres
     candidate --> postgres
     recruitment --> postgres
+    compliance --> postgres
     dashboard -->|bounded tenant-scoped aggregation| postgres
     candidate -->|authorised upload and download| privateStorage
 
@@ -66,6 +69,10 @@ flowchart TB
   authorised downloads and never returns the random internal storage key.
 - Dashboard is a read-only cross-module projection. It owns no Candidate or
   Recruitment records and uses four fixed tenant-scoped queries.
+- Compliance owns the shared qualification catalogue and deterministic temporal
+  evaluator. Candidate credentials remain in Candidate and Job requirements in
+  Recruitment; tenant-safe Infrastructure read models provide bounded inputs to
+  the framework-independent evaluator.
 
 See [the detailed architecture](../architecture.md) and
 [the entity-relationship diagram](entity-relationship.md).

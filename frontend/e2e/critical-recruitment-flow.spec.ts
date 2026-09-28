@@ -7,6 +7,7 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   const candidateName = `Ada E2E ${unique}`;
   const jobTitle = `Registered Nurse E2E ${unique}`;
   const organisationName = `CareMatch E2E ${unique}`;
+  const qualificationName = `First Aid E2E ${unique}`;
 
   const sessionDiscovery = page.waitForResponse((response) =>
     response.url().endsWith("/api/v1/auth/me"),
@@ -43,6 +44,13 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
+  await page.getByRole("link", { name: "Qualifications and expiries" }).click();
+  await page.getByLabel("Name").fill(qualificationName);
+  await page.getByRole("button", { name: "Add definition" }).click();
+  await expect(page.getByText(qualificationName)).toBeVisible();
+
+  await page.goto(organisationPath!);
+
   await page.getByRole("link", { name: "Manage candidates" }).click();
   await expect(page.getByRole("heading", { name: "Candidates" })).toBeVisible();
   await page.getByRole("link", { name: "Add candidate" }).click();
@@ -55,6 +63,12 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   await expect(
     page.getByRole("heading", { name: `${candidateName} Lovelace` }),
   ).toBeVisible();
+  await page.getByLabel("Qualification", { exact: true }).selectOption({
+    label: qualificationName,
+  });
+  await page.getByLabel("Expiry date").fill("2030-12-31");
+  await page.getByRole("button", { name: "Add qualification" }).click();
+  await expect(page.getByText("Valid")).toBeVisible();
 
   await page.goto(organisationPath!);
   await page.getByRole("link", { name: "Manage jobs" }).click();
@@ -66,6 +80,11 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   await expect(page.getByRole("heading", { name: jobTitle })).toBeVisible();
   await page.getByRole("button", { name: "Open job" }).click();
   await expect(page.getByText("Status: open")).toBeVisible();
+  await page.getByLabel("Add required qualification").selectOption({
+    label: qualificationName,
+  });
+  await page.getByRole("button", { name: "Add requirement" }).click();
+  await expect(page.getByText(qualificationName)).toBeVisible();
 
   await page.goto(organisationPath!);
   await page.getByRole("link", { name: "Manage applications" }).click();
@@ -82,6 +101,7 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
     .selectOption({ label: `${candidateName} Lovelace` });
   await page.getByRole("button", { name: "Create application" }).click();
   await expect(page.getByText("applied", { exact: true })).toBeVisible();
+  await expect(page.getByText("Requirements satisfied")).toBeVisible();
 
   for (const [button, status] of [
     ["Move to Screening", "screening"],

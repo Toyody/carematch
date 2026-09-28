@@ -1325,6 +1325,179 @@ paths:
                 be present.
               schema:
                 type: string
+  /organisations/{organisation}/qualifications:
+    parameters: [{ $ref: "#/components/parameters/OrganisationId" }]
+    get:
+      security: [{ StatefulSession: [] }]
+      operationId: listQualificationDefinitions
+      summary: List the Organisation qualification catalogue
+      tags: [Compliance]
+      responses:
+        "200": { description: Qualification definitions, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationDefinitionCollection" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
+    post:
+      security: [{ StatefulSession: [] }]
+      operationId: createQualificationDefinition
+      summary: Add a qualification definition
+      description: Admin only. This defines Organisation terminology and does not constitute regulatory certification.
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationDefinitionInput" } } } }
+      responses:
+        "201": { description: Definition created, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationDefinitionResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/qualifications/{qualification}:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/QualificationId" }
+    patch:
+      security: [{ StatefulSession: [] }]
+      operationId: updateQualificationDefinition
+      summary: Update or activate/deactivate a qualification definition
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationDefinitionUpdateInput" } } } }
+      responses:
+        "200": { description: Definition updated, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationDefinitionResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/candidates/{candidate}/qualifications:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/CandidateId" }
+    get:
+      security: [{ StatefulSession: [] }]
+      operationId: listCandidateQualifications
+      summary: List Candidate qualifications and certifications
+      tags: [Compliance]
+      responses:
+        "200": { description: Candidate credentials, content: { application/json: { schema: { $ref: "#/components/schemas/CandidateQualificationCollection" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/CandidateNotFound" }
+    post:
+      security: [{ StatefulSession: [] }]
+      operationId: createCandidateQualification
+      summary: Record a Candidate qualification
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CandidateQualificationInput" } } } }
+      responses:
+        "201": { description: Credential recorded, content: { application/json: { schema: { $ref: "#/components/schemas/CandidateQualificationResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/CandidateNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/candidates/{candidate}/qualifications/{candidateQualification}:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/CandidateId" }
+      - { $ref: "#/components/parameters/CandidateQualificationId" }
+    patch:
+      security: [{ StatefulSession: [] }]
+      operationId: updateCandidateQualification
+      summary: Correct a Candidate qualification record
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CandidateQualificationInput" } } } }
+      responses:
+        "200": { description: Credential updated, content: { application/json: { schema: { $ref: "#/components/schemas/CandidateQualificationResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/CandidateNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+    delete:
+      security: [{ StatefulSession: [] }]
+      operationId: deleteCandidateQualification
+      summary: Remove an incorrect Candidate qualification record
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      responses:
+        "204": { description: Credential removed }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/CandidateNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+  /organisations/{organisation}/jobs/{job}/qualification-requirements:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/JobId" }
+    get:
+      security: [{ StatefulSession: [] }]
+      operationId: listJobQualificationRequirements
+      summary: List required Job qualifications
+      tags: [Compliance]
+      responses:
+        "200": { description: Required qualifications, content: { application/json: { schema: { $ref: "#/components/schemas/JobQualificationRequirementCollection" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/JobNotFound" }
+    post:
+      security: [{ StatefulSession: [] }]
+      operationId: addJobQualificationRequirement
+      summary: Add a required Job qualification
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/JobQualificationRequirementInput" } } } }
+      responses:
+        "201": { description: Requirement added, content: { application/json: { schema: { $ref: "#/components/schemas/JobQualificationRequirementResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/JobNotFound" }
+        "409": { description: The qualification is already required, content: { application/json: { schema: { $ref: "#/components/schemas/SimpleMessage" } } } }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/jobs/{job}/qualification-requirements/{requirement}:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/JobId" }
+      - { $ref: "#/components/parameters/JobQualificationRequirementId" }
+    delete:
+      security: [{ StatefulSession: [] }]
+      operationId: deleteJobQualificationRequirement
+      summary: Remove a required Job qualification
+      tags: [Compliance]
+      parameters: [{ $ref: "#/components/parameters/XsrfToken" }]
+      responses:
+        "204": { description: Requirement removed }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/JobNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+  /organisations/{organisation}/jobs/{job}/candidates/{candidate}/qualification-coverage:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/JobId" }
+      - { $ref: "#/components/parameters/CandidateId" }
+    get:
+      security: [{ StatefulSession: [] }]
+      operationId: getQualificationCoverage
+      summary: Evaluate Candidate coverage of required Job qualifications
+      description: Deterministic comparison of Organisation-recorded data; not legal or regulatory certification.
+      tags: [Compliance]
+      responses:
+        "200": { description: Requirement-level and overall coverage, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationCoverageResponse" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
+  /organisations/{organisation}/qualification-expiries:
+    parameters: [{ $ref: "#/components/parameters/OrganisationId" }]
+    get:
+      security: [{ StatefulSession: [] }]
+      operationId: listQualificationExpiries
+      summary: List expired and soon-expiring Candidate credentials
+      tags: [Compliance]
+      responses:
+        "200": { description: Tenant-scoped expiry records, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationExpiryCollection" } } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
 components:
   securitySchemes:
     StatefulSession:
@@ -1402,6 +1575,21 @@ components:
         type: integer
         format: int64
         minimum: 1
+    QualificationId:
+      name: qualification
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    CandidateQualificationId:
+      name: candidateQualification
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    JobQualificationRequirementId:
+      name: requirement
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
     XsrfToken:
       name: X-XSRF-TOKEN
       in: header
@@ -1559,6 +1747,134 @@ components:
           schema:
             $ref: "#/components/schemas/RateLimitError"
   schemas:
+    SimpleMessage:
+      type: object
+      required: [message]
+      properties: { message: { type: string } }
+    QualificationDefinition:
+      type: object
+      additionalProperties: false
+      required: [id, name, category, description, is_active, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string, maxLength: 200 }
+        category: { type: [string, "null"], maxLength: 100 }
+        description: { type: [string, "null"], maxLength: 1000 }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    QualificationDefinitionInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        category: { type: [string, "null"], maxLength: 100 }
+        description: { type: [string, "null"], maxLength: 1000 }
+        is_active: { type: boolean, default: true }
+    QualificationDefinitionResponse:
+      type: object
+      required: [data]
+      properties: { data: { $ref: "#/components/schemas/QualificationDefinition" } }
+    QualificationDefinitionUpdateInput:
+      allOf:
+        - $ref: "#/components/schemas/QualificationDefinitionInput"
+        - type: object
+          required: [name, is_active]
+    QualificationDefinitionCollection:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/QualificationDefinition" } } }
+    CandidateQualificationInput:
+      type: object
+      additionalProperties: false
+      required: [qualification_definition_id]
+      properties:
+        qualification_definition_id: { type: integer, format: int64, minimum: 1 }
+        issuer: { type: [string, "null"], maxLength: 200 }
+        credential_number:
+          type: [string, "null"]
+          maxLength: 255
+          description: Sensitive tenant data; never logged or placed in URLs.
+        issued_on: { type: [string, "null"], format: date }
+        expires_on: { type: [string, "null"], format: date, description: Valid through this date. }
+    CandidateQualification:
+      allOf:
+        - $ref: "#/components/schemas/CandidateQualificationInput"
+        - type: object
+          required: [id, qualification_name, status, created_at, updated_at]
+          properties:
+            id: { type: integer, format: int64 }
+            qualification_name: { type: string }
+            status: { type: string, enum: [valid, expiring, expired] }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    CandidateQualificationResponse:
+      type: object
+      required: [data]
+      properties: { data: { $ref: "#/components/schemas/CandidateQualification" } }
+    CandidateQualificationCollection:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/CandidateQualification" } } }
+    JobQualificationRequirementInput:
+      type: object
+      additionalProperties: false
+      required: [qualification_definition_id]
+      properties: { qualification_definition_id: { type: integer, format: int64, minimum: 1 } }
+    JobQualificationRequirement:
+      type: object
+      required: [id, qualification_definition_id, qualification_name, created_at]
+      properties:
+        id: { type: integer, format: int64 }
+        qualification_definition_id: { type: integer, format: int64 }
+        qualification_name: { type: string }
+        created_at: { type: string, format: date-time }
+    JobQualificationRequirementResponse:
+      type: object
+      required: [data]
+      properties: { data: { $ref: "#/components/schemas/JobQualificationRequirement" } }
+    JobQualificationRequirementCollection:
+      type: object
+      required: [data]
+      properties: { data: { type: array, items: { $ref: "#/components/schemas/JobQualificationRequirement" } } }
+    QualificationCoverageResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [status, requirements]
+          properties:
+            status: { type: string, enum: [satisfied, attention_required, not_satisfied] }
+            requirements:
+              type: array
+              items:
+                type: object
+                required: [qualification_definition_id, name, status, candidate_qualification_id, expires_on]
+                properties:
+                  qualification_definition_id: { type: integer, format: int64 }
+                  name: { type: string }
+                  status: { type: string, enum: [valid, expiring, expired, missing] }
+                  candidate_qualification_id: { type: [integer, "null"], format: int64 }
+                  expires_on: { type: [string, "null"], format: date }
+    QualificationExpiryCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [candidate_qualification_id, candidate_id, candidate_name, qualification_definition_id, qualification_name, expires_on, status]
+            properties:
+              candidate_qualification_id: { type: integer, format: int64 }
+              candidate_id: { type: integer, format: int64 }
+              candidate_name: { type: string }
+              qualification_definition_id: { type: integer, format: int64 }
+              qualification_name: { type: string }
+              expires_on: { type: string, format: date }
+              status: { type: string, enum: [expired, expiring] }
     HealthResponse:
       type: object
       additionalProperties: false
@@ -2647,5 +2963,7 @@ tags:
     description: Tenant-owned Job profile and explicit lifecycle operations.
   - name: Dashboard
     description: Read-only tenant metrics and recent recruitment activity.
+  - name: Compliance
+    description: Organisation-defined qualifications, expiry and deterministic Job-requirement coverage.
   - name: System
     description: Operational endpoints for the CareMatch API.

@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'compliance' => [
+        'expiry_warning_days' => (int) env('COMPLIANCE_EXPIRY_WARNING_DAYS', 30),
+    ],
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
     'invitation_expiry_days' => (int) env('ORGANISATION_INVITATION_EXPIRY_DAYS', 7),
     'candidate_documents' => [

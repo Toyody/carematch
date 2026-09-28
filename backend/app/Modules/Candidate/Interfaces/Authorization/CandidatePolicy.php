@@ -18,6 +18,10 @@ final class CandidatePolicy
 
     public const string MANAGE_DOCUMENTS = 'candidate-documents.manage';
 
+    public const string VIEW_QUALIFICATIONS = 'candidate-qualifications.view';
+
+    public const string MANAGE_QUALIFICATIONS = 'candidate-qualifications.manage';
+
     public function view(Authenticatable $user, TenantContext $tenant): bool
     {
         return $this->matchesAuthenticatedUser($user, $tenant);
@@ -39,6 +43,16 @@ final class CandidatePolicy
     }
 
     public function manageDocuments(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->mayWrite($user, $tenant);
+    }
+
+    public function viewQualifications(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->view($user, $tenant);
+    }
+
+    public function manageQualifications(Authenticatable $user, TenantContext $tenant): bool
     {
         return $this->mayWrite($user, $tenant);
     }
