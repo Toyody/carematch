@@ -12,7 +12,7 @@ final readonly class DeleteCandidateQualification
 
     public function handle(TenantContext $tenant, int $candidateId, int $credentialId): void
     {
-        if (! $this->store->delete($tenant->organisationId, $candidateId, $credentialId)) {
+        if (! $this->store->delete($tenant->organisationId, $tenant->userId, $candidateId, $credentialId)) {
             throw new CandidateQualificationNotFound;
         }
     }

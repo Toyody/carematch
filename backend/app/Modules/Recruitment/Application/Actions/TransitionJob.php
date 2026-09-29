@@ -14,7 +14,7 @@ final readonly class TransitionJob
 
     public function handle(TenantContext $tenant, int $jobId, JobStatus $target): JobRecord
     {
-        return $this->jobs->transition($tenant->organisationId, $jobId, $target)
+        return $this->jobs->transition($tenant->organisationId, $tenant->userId, $jobId, $target)
             ?? throw new JobNotFound;
     }
 }

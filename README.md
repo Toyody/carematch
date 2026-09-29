@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Toyody/carematch/actions/workflows/ci.yml/badge.svg)](https://github.com/Toyody/carematch/actions/workflows/ci.yml)
 
-CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It demonstrates tenant-safe candidate management, job requisitions, recruitment pipelines, private candidate documents, role-based access control, and a focused operational dashboard in a modular Laravel and Next.js application.
+CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It demonstrates tenant-safe candidate management, job requisitions, recruitment pipelines, private candidate documents, role-based access control, an append-only business audit trail, and a focused operational dashboard in a modular Laravel and Next.js application.
 
 ![CareMatch organisation dashboard](docs/screenshots/organisation-dashboard.jpg)
 
@@ -23,6 +23,7 @@ CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It dem
 - Tenant-scoped candidate records and private document handling.
 - Job creation and lifecycle management.
 - Applications with pipeline transitions and auditable status history.
+- An Admin-only, tenant-scoped audit trail for meaningful business mutations.
 - An organisation dashboard with status breakdowns and recent activity.
 
 ## Portfolio screens
@@ -37,7 +38,7 @@ All displayed names, email addresses, organisations, locations, notes, and job d
 
 ## Architecture
 
-The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, and `Recruitment`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
+The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, and `Audit`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
 
 ```text
 Browser / Next.js SPA
@@ -47,7 +48,9 @@ Laravel REST API
   ├── Identity
   ├── Organisation
   ├── Candidate
-  └── Recruitment
+  ├── Recruitment
+  ├── Compliance
+  └── Audit
         │
         ├── PostgreSQL
         └── Private document storage
@@ -172,4 +175,4 @@ compose.e2e.yaml    Isolated browser-test stack
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 5 and Phase 7A Compliance & Credentials is implemented. Phase 7A tracks Organisation-defined qualifications, Candidate credentials, expiry and deterministic Job-requirement coverage without claiming legal or regulatory certification. Phase 6A repository-side production readiness is implemented, but no AWS deployment is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.
+The local and CI-tested portfolio scope through Phase 5, Phase 7A Compliance & Credentials, and Phase 7B Audit Trail is implemented. Audit events are tenant-scoped, privacy-limited and append-only; they complement rather than replace recruitment status history. Phase 6A repository-side production readiness is implemented, but no AWS deployment is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.

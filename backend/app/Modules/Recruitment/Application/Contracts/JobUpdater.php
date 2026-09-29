@@ -7,5 +7,5 @@ use App\Modules\Recruitment\Application\Data\JobRecord;
 interface JobUpdater
 {
     /** @param array<string, mixed> $changes */
-    public function update(int $organisationId, int $jobId, array $changes): ?JobRecord;
+    public function update(int $organisationId, int $actorUserId, int $jobId, array $changes): ?JobRecord;
 }

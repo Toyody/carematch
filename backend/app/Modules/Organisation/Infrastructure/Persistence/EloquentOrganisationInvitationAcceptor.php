@@ -2,21 +2,25 @@
 
 namespace App\Modules\Organisation\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Organisation\Application\Contracts\OrganisationInvitationAcceptor;
 use App\Modules\Organisation\Application\Exceptions\InvitationUnavailable;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
 
-final class EloquentOrganisationInvitationAcceptor implements OrganisationInvitationAcceptor
+final readonly class EloquentOrganisationInvitationAcceptor implements OrganisationInvitationAcceptor
 {
+    public function __construct(private AuditRecorder $audit) {}
+
     public function accept(
         string $tokenHash,
         int $userId,
         string $canonicalEmail,
         DateTimeImmutable $acceptedAt,
     ): void {
-        DB::transaction(static function () use (
+        DB::transaction(function () use (
             $tokenHash,
             $userId,
             $canonicalEmail,
@@ -62,7 +66,7 @@ final class EloquentOrganisationInvitationAcceptor implements OrganisationInvita
             ];
 
             if ($membership === null) {
-                OrganisationMembership::query()->create([
+                $membership = OrganisationMembership::query()->create([
                     'organisation_id' => $organisationId,
                     'user_id' => $userId,
                     ...$membershipValues,
@@ -72,6 +76,9 @@ final class EloquentOrganisationInvitationAcceptor implements OrganisationInvita
             }
 
             $invitation->forceFill(['accepted_at' => $acceptedAt])->save();
+            $this->audit->record(new AuditEvent($organisationId, $userId, 'invitation.accepted', 'invitation', (int) $invitation->getKey(), [
+                'membership_id' => (int) $membership->getKey(), 'role' => (string) $membership->getAttribute('role'),
+            ], $acceptedAt));
         });
     }
 

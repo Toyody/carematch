@@ -14,7 +14,7 @@ final readonly class UpdateJob
     /** @param array<string, mixed> $changes */
     public function handle(TenantContext $tenant, int $jobId, array $changes): JobRecord
     {
-        return $this->jobs->update($tenant->organisationId, $jobId, $changes)
+        return $this->jobs->update($tenant->organisationId, $tenant->userId, $jobId, $changes)
             ?? throw new JobNotFound;
     }
 }

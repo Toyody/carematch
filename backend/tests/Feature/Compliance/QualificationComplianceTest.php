@@ -59,6 +59,11 @@ final class QualificationComplianceTest extends TestCase
             ])->assertCreated();
         }
         $this->assertDatabaseCount('candidate_qualifications', 2);
+        $auditMetadata = DB::table('audit_events')
+            ->where('event_type', 'candidate_qualification.created')
+            ->pluck('metadata')
+            ->implode(' ');
+        self::assertStringNotContainsString('SYNTHETIC-', $auditMetadata);
     }
 
     public function test_recruiter_reads_catalogue_and_manages_credentials_and_requirements(): void

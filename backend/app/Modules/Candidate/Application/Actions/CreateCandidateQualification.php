@@ -14,7 +14,7 @@ final readonly class CreateCandidateQualification
 
     public function handle(TenantContext $tenant, int $candidateId, CandidateQualificationData $data): CandidateQualificationRecord
     {
-        return $this->store->create($tenant->organisationId, $candidateId, $data)
+        return $this->store->create($tenant->organisationId, $tenant->userId, $candidateId, $data)
             ?? throw new CandidateQualificationNotFound;
     }
 }

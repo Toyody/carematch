@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Audit\Infrastructure\Providers\AuditServiceProvider;
 use App\Modules\Candidate\Infrastructure\Providers\CandidateServiceProvider;
 use App\Modules\Compliance\Infrastructure\Providers\ComplianceServiceProvider;
 use App\Modules\Dashboard\Infrastructure\Providers\DashboardServiceProvider;
@@ -10,6 +11,7 @@ use App\Providers\AppServiceProvider;
 
 return [
     AppServiceProvider::class,
+    AuditServiceProvider::class,
     IdentityServiceProvider::class,
     OrganisationServiceProvider::class,
     CandidateServiceProvider::class,

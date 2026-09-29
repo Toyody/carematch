@@ -64,6 +64,7 @@ final class PortfolioDemoSeederTest extends TestCase
         self::assertSame($firstCounts, $this->demoCounts());
         self::assertSame([
             'applications' => 6,
+            'audit_events' => 5,
             'candidates' => 6,
             'documents' => 0,
             'history' => 18,
@@ -146,6 +147,7 @@ final class PortfolioDemoSeederTest extends TestCase
     {
         return [
             'applications' => DB::table('applications')->count(),
+            'audit_events' => DB::table('audit_events')->count(),
             'candidates' => DB::table('candidates')->count(),
             'documents' => DB::table('candidate_documents')->count(),
             'history' => DB::table('application_status_history')->count(),

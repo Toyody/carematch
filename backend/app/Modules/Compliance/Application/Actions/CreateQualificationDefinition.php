@@ -13,6 +13,6 @@ final readonly class CreateQualificationDefinition
 
     public function handle(TenantContext $tenant, QualificationDefinitionData $data): QualificationDefinitionRecord
     {
-        return $this->definitions->create($tenant->organisationId, $data);
+        return $this->definitions->create($tenant->organisationId, $tenant->userId, $data);
     }
 }

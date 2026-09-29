@@ -12,7 +12,7 @@ final readonly class DeleteJobQualificationRequirement
 
     public function handle(TenantContext $tenant, int $jobId, int $requirementId): void
     {
-        if (! $this->store->delete($tenant->organisationId, $jobId, $requirementId)) {
+        if (! $this->store->delete($tenant->organisationId, $tenant->userId, $jobId, $requirementId)) {
             throw new JobQualificationRequirementNotFound;
         }
     }

@@ -7,5 +7,5 @@ use App\Modules\Recruitment\Application\Data\JobRecord;
 
 interface JobCreator
 {
-    public function create(int $organisationId, JobData $data): JobRecord;
+    public function create(int $organisationId, int $actorUserId, JobData $data): JobRecord;
 }

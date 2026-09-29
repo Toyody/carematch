@@ -132,6 +132,16 @@ erDiagram
         bigint job_id FK
         bigint qualification_definition_id FK
     }
+    AUDIT_EVENTS {
+        bigint id PK
+        bigint organisation_id FK
+        bigint actor_user_id FK
+        string event_type
+        string subject_type
+        bigint subject_id
+        jsonb metadata
+        timestamptz occurred_at
+    }
 
     USERS ||--o{ ORGANISATION_MEMBERSHIPS : has
     ORGANISATIONS ||--o{ ORGANISATION_MEMBERSHIPS : contains
@@ -153,6 +163,8 @@ erDiagram
     QUALIFICATION_DEFINITIONS ||--o{ CANDIDATE_QUALIFICATIONS : classifies
     JOBS ||--o{ JOB_QUALIFICATION_REQUIREMENTS : requires
     QUALIFICATION_DEFINITIONS ||--o{ JOB_QUALIFICATION_REQUIREMENTS : specifies
+    ORGANISATIONS ||--o{ AUDIT_EVENTS : owns
+    ORGANISATION_MEMBERSHIPS ||--o{ AUDIT_EVENTS : acts
 ```
 
 ## Integrity notes
@@ -178,6 +190,8 @@ erDiagram
   expose personal-access-token product functionality.
 - PostgreSQL check constraints restrict membership roles, Job states,
   Application states, invitation state combinations and positive document size.
+- Audit events use a tenant/actor composite foreign key, object-shaped JSONB
+  metadata and a PostgreSQL trigger that rejects UPDATE and DELETE.
 - Qualification credentials and Job requirements use composite tenant foreign
   keys. Candidate renewals are allowed, while duplicate Job requirements are
   rejected. Issue/expiry dates use `DATE`, with a CHECK for chronological order;

@@ -14,7 +14,7 @@ final readonly class UpdateQualificationDefinition
 
     public function handle(TenantContext $tenant, int $definitionId, QualificationDefinitionData $data): QualificationDefinitionRecord
     {
-        return $this->definitions->update($tenant->organisationId, $definitionId, $data)
+        return $this->definitions->update($tenant->organisationId, $tenant->userId, $definitionId, $data)
             ?? throw new QualificationDefinitionNotFound;
     }
 }

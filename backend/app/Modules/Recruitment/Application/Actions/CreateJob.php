@@ -13,6 +13,6 @@ final readonly class CreateJob
 
     public function handle(TenantContext $tenant, JobData $data): JobRecord
     {
-        return $this->jobs->create($tenant->organisationId, $data);
+        return $this->jobs->create($tenant->organisationId, $tenant->userId, $data);
     }
 }

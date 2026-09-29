@@ -19,6 +19,7 @@ final readonly class CreateCandidate
     {
         return $this->candidates->create(
             $tenant->organisationId,
+            $tenant->userId,
             new CandidateData(
                 firstName: $data->firstName,
                 lastName: $data->lastName,

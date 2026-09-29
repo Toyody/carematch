@@ -253,7 +253,7 @@ Exit criteria:
 
 ### Phase 7B — Audit Trail
 
-- [ ] Broader audit logging
+- [x] Broader audit logging
 
 ### Phase 7C — Deterministic Matching & PostGIS
 

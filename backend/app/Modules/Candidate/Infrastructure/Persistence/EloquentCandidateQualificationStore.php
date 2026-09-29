@@ -2,15 +2,18 @@
 
 namespace App\Modules\Candidate\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Candidate\Application\Contracts\CandidateQualificationStore;
 use App\Modules\Candidate\Application\Data\CandidateQualificationData;
 use App\Modules\Candidate\Application\Data\CandidateQualificationRecord;
 use App\Modules\Compliance\Application\Contracts\QualificationDefinitionReferences;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 final readonly class EloquentCandidateQualificationStore implements CandidateQualificationStore
 {
-    public function __construct(private QualificationDefinitionReferences $definitions) {}
+    public function __construct(private QualificationDefinitionReferences $definitions, private AuditRecorder $audit) {}
 
     public function all(int $organisationId, int $candidateId): ?array
     {
@@ -29,36 +32,64 @@ final readonly class EloquentCandidateQualificationStore implements CandidateQua
             ))->sortBy(static fn (CandidateQualificationRecord $record): string => $record->qualificationName)->values()->all());
     }
 
-    public function create(int $organisationId, int $candidateId, CandidateQualificationData $data): ?CandidateQualificationRecord
+    public function create(int $organisationId, int $actorUserId, int $candidateId, CandidateQualificationData $data): ?CandidateQualificationRecord
     {
-        if (! $this->targetsExist($organisationId, $candidateId, $data->qualificationDefinitionId)) {
-            return null;
-        }
+        return DB::transaction(function () use ($organisationId, $actorUserId, $candidateId, $data): ?CandidateQualificationRecord {
+            if (! $this->targetsExist($organisationId, $candidateId, $data->qualificationDefinitionId)) {
+                return null;
+            }
 
-        return $this->record(CandidateQualification::query()->create($this->attributes($organisationId, $candidateId, $data)));
+            $credential = CandidateQualification::query()->create($this->attributes($organisationId, $candidateId, $data));
+            $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'candidate_qualification.created', 'candidate_qualification', (int) $credential->getKey(), [
+                'candidate_id' => $candidateId, 'qualification_definition_id' => $data->qualificationDefinitionId,
+            ]));
+
+            return $this->record($credential);
+        });
     }
 
-    public function update(int $organisationId, int $candidateId, int $credentialId, CandidateQualificationData $data): ?CandidateQualificationRecord
+    public function update(int $organisationId, int $actorUserId, int $candidateId, int $credentialId, CandidateQualificationData $data): ?CandidateQualificationRecord
     {
-        $credential = CandidateQualification::query()->where('organisation_id', $organisationId)
-            ->where('candidate_id', $candidateId)->whereKey($credentialId)->first();
-        if ($credential === null) {
-            return null;
-        }
-        $currentDefinitionId = (int) $credential->getAttribute('qualification_definition_id');
-        if ($currentDefinitionId !== $data->qualificationDefinitionId
-            && ! $this->activeDefinitionExists($organisationId, $data->qualificationDefinitionId)) {
-            return null;
-        }
-        $credential->update($this->attributes($organisationId, $candidateId, $data));
+        return DB::transaction(function () use ($organisationId, $actorUserId, $candidateId, $credentialId, $data): ?CandidateQualificationRecord {
+            $credential = CandidateQualification::query()->where('organisation_id', $organisationId)
+                ->where('candidate_id', $candidateId)->whereKey($credentialId)->lockForUpdate()->first();
+            if ($credential === null) {
+                return null;
+            }
+            $currentDefinitionId = (int) $credential->getAttribute('qualification_definition_id');
+            if ($currentDefinitionId !== $data->qualificationDefinitionId
+                && ! $this->activeDefinitionExists($organisationId, $data->qualificationDefinitionId)) {
+                return null;
+            }
+            $credential->fill($this->attributes($organisationId, $candidateId, $data));
+            $changedFields = array_values(array_diff(array_keys($credential->getDirty()), ['organisation_id', 'candidate_id']));
+            if ($changedFields !== []) {
+                $credential->save();
+                $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'candidate_qualification.updated', 'candidate_qualification', $credentialId, [
+                    'candidate_id' => $candidateId, 'qualification_definition_id' => $data->qualificationDefinitionId, 'changed_fields' => $changedFields,
+                ]));
+            }
 
-        return $this->record($credential->fresh() ?? $credential);
+            return $this->record($credential->fresh() ?? $credential);
+        });
     }
 
-    public function delete(int $organisationId, int $candidateId, int $credentialId): bool
+    public function delete(int $organisationId, int $actorUserId, int $candidateId, int $credentialId): bool
     {
-        return CandidateQualification::query()->where('organisation_id', $organisationId)
-            ->where('candidate_id', $candidateId)->whereKey($credentialId)->delete() === 1;
+        return DB::transaction(function () use ($organisationId, $actorUserId, $candidateId, $credentialId): bool {
+            $credential = CandidateQualification::query()->where('organisation_id', $organisationId)
+                ->where('candidate_id', $candidateId)->whereKey($credentialId)->lockForUpdate()->first();
+            if ($credential === null) {
+                return false;
+            }
+            $definitionId = (int) $credential->getAttribute('qualification_definition_id');
+            $credential->delete();
+            $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'candidate_qualification.deleted', 'candidate_qualification', $credentialId, [
+                'candidate_id' => $candidateId, 'qualification_definition_id' => $definitionId,
+            ]));
+
+            return true;
+        });
     }
 
     private function targetsExist(int $organisationId, int $candidateId, int $definitionId): bool

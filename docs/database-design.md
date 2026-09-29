@@ -341,6 +341,20 @@ history is append-only through normal application operations: only create/read
 paths exist, with no update or delete endpoint. History reads are tenant-scoped
 through the parent Application and ordered by `created_at`, then `id`.
 
+### `audit_events`
+
+Append-only Organisation business activity contains `id`, `organisation_id`,
+`actor_user_id`, `event_type`, `subject_type`, `subject_id`, object-shaped JSONB
+`metadata` and immutable UTC `occurred_at`. There is deliberately no
+`updated_at`.
+
+A composite foreign key from `(organisation_id, actor_user_id)` to Organisation
+membership proves the actor belonged to that tenant; deactivated membership
+rows remain valid historical actors. CHECK constraints require non-blank types,
+a positive subject ID and object metadata. A PostgreSQL trigger rejects UPDATE
+and DELETE while allowing migration rollback to drop the table. No application
+update/delete API exists.
+
 ## 5. Deletion and Retention
 
 - Applications and status history are not physically deleted through normal user operations.
@@ -376,6 +390,9 @@ Expected indexes:
 - `application_status_history(organisation_id, application_id, created_at)`
 - `application_status_history(organisation_id, created_at DESC, id DESC)`
 - `candidate_documents(organisation_id, candidate_id, created_at, id)`
+- `audit_events(organisation_id, occurred_at, id)`
+- `audit_events(organisation_id, event_type, occurred_at, id)`
+- `audit_events(organisation_id, actor_user_id, occurred_at, id)`
 
 Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text, trigram and PostGIS indexes are deferred until measured requirements justify them.
 

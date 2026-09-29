@@ -9,6 +9,7 @@ interface OrganisationNameUpdater
 {
     public function updateName(
         int $organisationId,
+        int $actorUserId,
         string $name,
         OrganisationRole $role,
     ): OrganisationSummary;
