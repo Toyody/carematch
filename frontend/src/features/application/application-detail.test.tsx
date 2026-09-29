@@ -143,9 +143,7 @@ describe("ApplicationDetail", () => {
     );
     expect(await screen.findByText("applied → screening")).toBeVisible();
     expect(screen.getByText("Passed review")).toBeVisible();
-    expect(
-      screen.getByText("Application moved to screening."),
-    ).toBeVisible();
+    expect(screen.getByText("Application moved to screening.")).toBeVisible();
     expect(screen.getByLabelText("Optional note")).toHaveValue("");
     expect(
       screen.getByRole("button", { name: "Move to Interview" }),
