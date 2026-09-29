@@ -91,6 +91,12 @@ final class OrganisationInvitationTest extends TestCase
         self::assertTrue($invitation->expires_at->between($before, $after));
         self::assertStringNotContainsString($rawToken, $response->getContent());
         self::assertArrayNotHasKey('token_hash', $invitation->toArray());
+
+        $audit = DB::table('audit_events')->where('event_type', 'invitation.created')->sole();
+        self::assertSame((int) $organisation->getKey(), (int) $audit->organisation_id);
+        self::assertSame((int) $admin->getKey(), (int) $audit->actor_user_id);
+        self::assertStringNotContainsString('invitee@example.test', (string) $audit->metadata);
+        self::assertStringNotContainsString($rawToken, (string) $audit->metadata);
     }
 
     #[DataProvider('roles')]

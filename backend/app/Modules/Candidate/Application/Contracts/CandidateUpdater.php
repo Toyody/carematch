@@ -9,5 +9,5 @@ interface CandidateUpdater
     /**
      * @param  array<string, string|null>  $changes
      */
-    public function update(int $organisationId, int $candidateId, array $changes): ?CandidateRecord;
+    public function update(int $organisationId, int $actorUserId, int $candidateId, array $changes): ?CandidateRecord;
 }

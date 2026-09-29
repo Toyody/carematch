@@ -12,6 +12,10 @@ Route::prefix('v1')->group(
 );
 
 Route::prefix('v1')->group(
+    base_path('app/Modules/Audit/Interfaces/Http/routes.php'),
+);
+
+Route::prefix('v1')->group(
     base_path('app/Modules/Organisation/Interfaces/Http/routes.php'),
 );
 

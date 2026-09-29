@@ -55,6 +55,7 @@ final class PortfolioDemoSeeder extends Seeder
             $this->qualificationData($organisation, $candidates, $jobs);
 
             $this->applications($organisation, $user, $candidates, $jobs);
+            $this->auditTimeline($organisation, $user, $candidates, $jobs);
         });
 
         $this->command?->info(sprintf(
@@ -337,6 +338,48 @@ final class PortfolioDemoSeeder extends Seeder
 
         foreach ($definitions as [$candidate, $job, $status, $completedAt]) {
             $this->application($organisation, $user, $candidate, $job, $status, $completedAt);
+        }
+    }
+
+    /**
+     * @param  array<string, Candidate>  $candidates
+     * @param  array<string, Job>  $jobs
+     */
+    private function auditTimeline(Organisation $organisation, User $user, array $candidates, array $jobs): void
+    {
+        $applicationId = (int) RecruitmentApplication::query()
+            ->where('organisation_id', $organisation->getKey())
+            ->where('job_id', $jobs['nurse']->getKey())
+            ->where('candidate_id', $candidates['avery']->getKey())
+            ->value('id');
+        $membershipId = (int) OrganisationMembership::query()
+            ->where('organisation_id', $organisation->getKey())
+            ->where('user_id', $user->getKey())
+            ->value('id');
+
+        $events = [
+            ['candidate.updated', 'candidate', (int) $candidates['avery']->getKey(), ['changed_fields' => ['availability']], '2026-09-27 09:00:00+00'],
+            ['job.opened', 'job', (int) $jobs['nurse']->getKey(), ['from_status' => 'draft', 'to_status' => 'open'], '2026-09-27 10:00:00+00'],
+            ['application.status_changed', 'application', $applicationId, ['from_status' => 'offer', 'to_status' => 'hired'], '2026-09-27 15:00:00+00'],
+            ['qualification_definition.updated', 'qualification_definition', (int) QualificationDefinition::query()->where('organisation_id', $organisation->getKey())->where('name', 'CPR')->value('id'), ['changed_fields' => ['description']], '2026-09-28 09:00:00+00'],
+            ['membership.role_changed', 'organisation_membership', $membershipId, ['from_role' => 'recruiter', 'to_role' => 'admin'], '2026-09-28 10:00:00+00'],
+        ];
+
+        foreach ($events as [$eventType, $subjectType, $subjectId, $metadata, $occurredAt]) {
+            $exists = DB::table('audit_events')->where([
+                'organisation_id' => $organisation->getKey(),
+                'event_type' => $eventType,
+                'subject_type' => $subjectType,
+                'subject_id' => $subjectId,
+                'occurred_at' => $occurredAt,
+            ])->exists();
+            if (! $exists) {
+                DB::table('audit_events')->insert([
+                    'organisation_id' => $organisation->getKey(), 'actor_user_id' => $user->getKey(),
+                    'event_type' => $eventType, 'subject_type' => $subjectType, 'subject_id' => $subjectId,
+                    'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR), 'occurred_at' => $occurredAt,
+                ]);
+            }
         }
     }
 

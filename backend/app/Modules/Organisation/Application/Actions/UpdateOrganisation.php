@@ -16,6 +16,7 @@ final readonly class UpdateOrganisation
     {
         return $this->organisations->updateName(
             organisationId: $tenant->organisationId,
+            actorUserId: $tenant->userId,
             name: $name,
             role: $tenant->role,
         );

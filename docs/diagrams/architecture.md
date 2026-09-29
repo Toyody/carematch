@@ -19,6 +19,7 @@ flowchart TB
             candidate[Candidate]
             recruitment[Recruitment]
             compliance[Compliance catalogue and evaluator]
+            audit[Audit trail]
             dashboard[Dashboard read model]
         end
     end
@@ -37,6 +38,7 @@ flowchart TB
     tenant --> candidate
     tenant --> recruitment
     tenant --> compliance
+    tenant --> audit
     tenant --> dashboard
 
     identity --> postgres
@@ -44,6 +46,7 @@ flowchart TB
     candidate --> postgres
     recruitment --> postgres
     compliance --> postgres
+    audit -->|append-only events and paginated reads| postgres
     dashboard -->|bounded tenant-scoped aggregation| postgres
     candidate -->|authorised upload and download| privateStorage
 
@@ -73,6 +76,9 @@ flowchart TB
   evaluator. Candidate credentials remain in Candidate and Job requirements in
   Recruitment; tenant-safe Infrastructure read models provide bounded inputs to
   the framework-independent evaluator.
+- Audit owns semantic tenant business events and an Admin-only read model.
+  Business mutations and their audit insert commit together without observers
+  or a generic event bus.
 
 See [the detailed architecture](../architecture.md) and
 [the entity-relationship diagram](entity-relationship.md).

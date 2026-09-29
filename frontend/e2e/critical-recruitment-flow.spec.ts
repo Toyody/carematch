@@ -142,4 +142,13 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
     dashboard.getByRole("link", { name: `${candidateName} Lovelace` }).first(),
   ).toBeVisible();
   await expect(dashboard.getByText("Offer to Hired")).toBeVisible();
+
+  await page.getByRole("link", { name: "Audit Trail" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Audit Trail" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Application status changed").first(),
+  ).toBeVisible();
+  await expect(page.getByText("Candidate created").first()).toBeVisible();
 });

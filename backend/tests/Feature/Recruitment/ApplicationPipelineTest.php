@@ -44,6 +44,13 @@ final class ApplicationPipelineTest extends TestCase
             'note' => 'Reviewed by the team.',
         ]);
         $this->assertDatabaseCount('application_status_history', 2);
+
+        $audit = DB::table('audit_events')->where('event_type', 'application.status_changed')->sole();
+        $metadata = json_decode((string) $audit->metadata, true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($from, $metadata['from_status']);
+        self::assertSame($to, $metadata['to_status']);
+        self::assertCount(2, $metadata);
+        self::assertStringNotContainsString('Reviewed by the team.', (string) $audit->metadata);
     }
 
     #[DataProvider('hiringManagerTransitions')]

@@ -8,6 +8,7 @@ interface OrganisationInvitationRevoker
 {
     public function revoke(
         int $organisationId,
+        int $actorUserId,
         int $invitationId,
         DateTimeImmutable $revokedAt,
     ): void;

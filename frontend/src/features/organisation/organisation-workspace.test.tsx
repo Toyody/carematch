@@ -80,11 +80,25 @@ describe("OrganisationWorkspace", () => {
     expect(
       screen.getByRole("link", { name: "Manage applications" }),
     ).toHaveAttribute("href", `/organisations/${northside.id}/applications`);
+    expect(screen.getByRole("link", { name: "Audit Trail" })).toHaveAttribute(
+      "href",
+      `/organisations/${northside.id}/audit-events`,
+    );
     expect(screen.getByRole("region", { name: "Dashboard" })).toHaveTextContent(
       `Dashboard for ${northside.id}`,
     );
     expect(getOrganisation).toHaveBeenCalledWith(northside.id);
     expect(listOrganisations).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides Audit Trail navigation from non-admin roles", async () => {
+    vi.mocked(getOrganisation).mockResolvedValue(southside);
+    render(<OrganisationWorkspace organisationId={southside.id} />);
+
+    await screen.findByRole("heading", { name: southside.name });
+    expect(
+      screen.queryByRole("link", { name: "Audit Trail" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows all available organisations and routes switching through the URL", async () => {

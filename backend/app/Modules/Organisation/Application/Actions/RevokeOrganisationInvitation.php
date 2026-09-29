@@ -17,6 +17,7 @@ final readonly class RevokeOrganisationInvitation
     {
         $this->invitations->revoke(
             organisationId: $tenant->organisationId,
+            actorUserId: $tenant->userId,
             invitationId: $invitationId,
             revokedAt: new DateTimeImmutable('now', new DateTimeZone('UTC')),
         );

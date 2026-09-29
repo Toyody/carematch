@@ -7,5 +7,5 @@ use App\Modules\Recruitment\Domain\JobStatus;
 
 interface JobLifecycleTransitioner
 {
-    public function transition(int $organisationId, int $jobId, JobStatus $target): ?JobRecord;
+    public function transition(int $organisationId, int $actorUserId, int $jobId, JobStatus $target): ?JobRecord;
 }

@@ -2,6 +2,8 @@
 
 namespace App\Modules\Recruitment\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Organisation\Application\Data\OrganisationRole;
 use App\Modules\Recruitment\Application\Authorization\ApplicationTransitionPermissions;
 use App\Modules\Recruitment\Application\Contracts\ApplicationTransitioner;
@@ -14,7 +16,7 @@ use LogicException;
 
 final readonly class EloquentApplicationTransitioner implements ApplicationTransitioner
 {
-    public function __construct(private ApplicationTransitionPermissions $permissions) {}
+    public function __construct(private ApplicationTransitionPermissions $permissions, private AuditRecorder $audit) {}
 
     public function transition(
         int $organisationId,
@@ -65,6 +67,10 @@ final readonly class EloquentApplicationTransitioner implements ApplicationTrans
                 'changed_by_user_id' => $actorUserId,
                 'note' => $note,
             ]);
+
+            $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'application.status_changed', 'application', $applicationId, [
+                'from_status' => $current->value, 'to_status' => $target->value,
+            ]));
 
             $jobTitle = Job::query()
                 ->where('organisation_id', $organisationId)

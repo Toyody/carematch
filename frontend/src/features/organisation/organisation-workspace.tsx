@@ -169,6 +169,11 @@ export function OrganisationWorkspace({
               <Link href={`/organisations/${organisationId}/qualifications`}>
                 Qualifications and expiries
               </Link>
+              {organisation.membership.role === "admin" ? (
+                <Link href={`/organisations/${organisationId}/audit-events`}>
+                  Audit Trail
+                </Link>
+              ) : null}
             </nav>
           </header>
         ) : null}

@@ -14,7 +14,7 @@ final readonly class UpdateCandidateQualification
 
     public function handle(TenantContext $tenant, int $candidateId, int $credentialId, CandidateQualificationData $data): CandidateQualificationRecord
     {
-        return $this->store->update($tenant->organisationId, $candidateId, $credentialId, $data)
+        return $this->store->update($tenant->organisationId, $tenant->userId, $candidateId, $credentialId, $data)
             ?? throw new CandidateQualificationNotFound;
     }
 }

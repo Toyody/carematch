@@ -16,6 +16,7 @@ use App\Modules\Organisation\Infrastructure\Persistence\Organisation;
 use App\Modules\Organisation\Infrastructure\Persistence\OrganisationMembership;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -110,6 +111,11 @@ final class CandidateDocumentManagementTest extends TestCase
 
         Storage::disk('candidate_documents')->assertMissing($storageKey);
         $this->assertDatabaseMissing('candidate_documents', ['id' => $document->getKey()]);
+
+        $events = DB::table('audit_events')->where('subject_type', 'candidate_document')->orderBy('id')->get();
+        self::assertSame(['candidate_document.uploaded', 'candidate_document.deleted'], $events->pluck('event_type')->all());
+        self::assertStringNotContainsString('resume.pdf', $events->pluck('metadata')->implode(' '));
+        self::assertStringNotContainsString($storageKey, $events->pluck('metadata')->implode(' '));
     }
 
     public function test_a_real_docx_is_accepted_with_its_server_detected_mime_type(): void
@@ -365,7 +371,7 @@ final class CandidateDocumentManagementTest extends TestCase
                 return null;
             }
 
-            public function delete(int $organisationId, int $candidateId, int $documentId): bool
+            public function delete(int $organisationId, int $candidateId, int $documentId, int $actorUserId): bool
             {
                 return false;
             }
@@ -490,7 +496,7 @@ final class CandidateDocumentManagementTest extends TestCase
                 return $this->store->find($organisationId, $candidateId, $documentId);
             }
 
-            public function delete(int $organisationId, int $candidateId, int $documentId): bool
+            public function delete(int $organisationId, int $candidateId, int $documentId, int $actorUserId): bool
             {
                 throw new CandidateDocumentPersistenceFailure;
             }

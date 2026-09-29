@@ -2,6 +2,8 @@
 
 namespace App\Modules\Organisation\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Organisation\Application\Contracts\OrganisationMembershipMutator;
 use App\Modules\Organisation\Application\Data\OrganisationMembershipRecord;
 use App\Modules\Organisation\Application\Data\OrganisationRole;
@@ -19,6 +21,8 @@ use LogicException;
 
 final class EloquentOrganisationMembershipMutator implements OrganisationMembershipMutator
 {
+    public function __construct(private readonly AuditRecorder $audit) {}
+
     public function changeRole(
         TenantContext $tenant,
         int $membershipId,
@@ -42,6 +46,9 @@ final class EloquentOrganisationMembershipMutator implements OrganisationMembers
             }
 
             $target->forceFill(['role' => $role->value])->save();
+            $this->audit->record(new AuditEvent($tenant->organisationId, $tenant->userId, 'membership.role_changed', 'organisation_membership', $membershipId, [
+                'from_role' => $currentRole->value, 'to_role' => $role->value,
+            ]));
 
             return self::toRecord($target);
         });
@@ -64,6 +71,7 @@ final class EloquentOrganisationMembershipMutator implements OrganisationMembers
             }
 
             $target->forceFill(['deactivated_at' => $deactivatedAt])->save();
+            $this->audit->record(new AuditEvent($tenant->organisationId, $tenant->userId, 'membership.deactivated', 'organisation_membership', $membershipId, [], $deactivatedAt));
         });
     }
 

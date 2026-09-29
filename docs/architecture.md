@@ -37,11 +37,20 @@ backend/app/
             Application/
             Infrastructure/
             Interfaces/
+        Audit/
+            Application/
+            Infrastructure/
+            Interfaces/
 ```
 
 Laravel bootstrap, shared framework configuration and genuinely cross-cutting providers may remain in conventional Laravel locations. A generic `Shared` or `Common` module must not become a dumping ground.
 
 Phase 7A introduces a real Compliance module because it owns the shared Organisation qualification catalogue, date-based expiry semantics and deterministic Candidate/Job requirement evaluator. Candidate credentials remain owned by Candidate and Job requirements remain owned by Recruitment. Their Infrastructure adapters compose persisted data through focused Compliance Application contracts; Application and Domain code do not import another module's Eloquent models. Matching, asynchronous messaging and AI remain future concerns and must not be represented by empty modules.
+
+Phase 7B introduces Audit as a real module. It owns the structured recording
+contract, append-only persistence and Admin-only tenant read API. Business
+modules explicitly record semantic events at mutation boundaries; no generic
+event bus, Eloquent observer, request logger or arbitrary metadata sink is used.
 
 Qualification coverage is calculated in bounded reads: the tenant-scoped Job and Candidate are verified, required definitions are loaded in one query, and relevant Candidate evidence is loaded in one query. The framework-independent evaluator receives those records plus an explicit UTC date and warning threshold. No compliance rule is duplicated in React, and no global Candidate compliance flag is stored.
 
@@ -72,6 +81,13 @@ Organisation workspace. Its Application action depends on one focused read-model
 port, and its PostgreSQL adapter aggregates Candidate and Recruitment tables using
 trusted tenant identifiers. It does not expose a generic reporting framework or
 move Candidate, Job, Application or history ownership out of their modules.
+
+### Audit
+
+Owns Organisation-scoped audit-event semantics, persistence and querying. Other
+modules depend only on the focused `AuditRecorder` Application contract and
+provide trusted tenant/actor identifiers plus allow-listed metadata. Actor
+display is batch-enriched through the existing Identity Application lookup.
 
 ## 4. Layers and Dependency Rule
 
@@ -222,7 +238,22 @@ The following operations are single database transactions:
 - transition a Job after locking and re-reading its tenant-scoped current row
 - create an application and its initial status-history entry
 - change an application status and append its status-history entry
+- write each required database-backed business mutation and its audit event
 - any future operation that records multiple writes as one business decision
+
+Audit insertion occurs after the protected state mutation while the existing
+transaction and lock order remain in force. An audit insert failure rolls back
+the corresponding database mutation. Single-row mutations now use a transaction
+because the audit row is a second required write. Audit insertion acquires no
+additional business-row locks. Organisation creation records only after the
+initial Admin membership exists; invitation acceptance retains the
+`Organisation -> invitation -> membership` lock order.
+
+Candidate-document upload writes the object first, then atomically writes
+metadata and its audit event, compensating with object deletion on database
+failure. Delete removes the object first, then atomically deletes metadata and
+appends the event. If that transaction fails, sensitive bytes are not restored
+and the inaccessible metadata row may require reconciliation.
 
 Phase 2-A continues to use Laravel Password Broker's standard reset sequence: token validation occurs before the reset callback, and token deletion occurs after the callback completes. The User row lock serialises password, remember-token and session mutations for that user, but it does not atomically consume the reset token. Two concurrent requests that both validate before either deletes the token can therefore enter the reset callback. Strict atomic single-use under concurrent requests is an accepted Laravel framework and MVP trade-off; sequential reuse after a successful reset is rejected.
 
@@ -290,6 +321,23 @@ introduced because document metadata has no independent Domain behaviour.
 - Do not expose credentials, storage keys or unnecessary personal information through API Resources.
 
 ## 10. Read-model and query strategy
+
+The Audit list is tenant-scoped and paginated at 20 rows by default with a hard
+maximum of 100. It sorts by `occurred_at DESC, id DESC`, applies only documented
+exact/date filters, and resolves actor IDs in one Identity lookup rather than
+one query per event. Subject rendering remains ID-based so deleted records do
+not invalidate history.
+
+Audit metadata is allow-listed per event. It may contain controlled state/role
+transitions, changed field names and internal IDs; it never stores request
+payloads, snapshots, tokens, notes, credential numbers, document names, storage
+keys or document content. `application_status_history` remains the authoritative
+workflow timeline and keeps its optional note separately.
+
+No production audit-retention period is approved. No purge is implemented, and
+retention must be chosen before real sensitive Candidate data is used. Phase 7B
+assumes authenticated human actors; a future worker/system actor requires an
+explicit extension instead of a fabricated membership.
 
 The Phase 5B Dashboard uses four fixed PostgreSQL queries: one tenant Candidate
 count, one tenant Open Job count, one grouped Application-status count and one

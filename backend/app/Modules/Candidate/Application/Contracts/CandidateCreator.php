@@ -7,5 +7,5 @@ use App\Modules\Candidate\Application\Data\CandidateRecord;
 
 interface CandidateCreator
 {
-    public function create(int $organisationId, CandidateData $data): CandidateRecord;
+    public function create(int $organisationId, int $actorUserId, CandidateData $data): CandidateRecord;
 }

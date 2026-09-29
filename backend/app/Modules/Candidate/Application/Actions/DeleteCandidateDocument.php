@@ -38,6 +38,7 @@ final readonly class DeleteCandidateDocument
             $tenant->organisationId,
             $candidateId,
             $documentId,
+            $tenant->userId,
         )) {
             throw new CandidateDocumentNotFound;
         }

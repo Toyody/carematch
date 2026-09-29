@@ -2,6 +2,8 @@
 
 namespace App\Modules\Recruitment\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Candidate\Application\Contracts\CandidateReferenceLookup;
 use App\Modules\Recruitment\Application\Contracts\ApplicationCreator;
 use App\Modules\Recruitment\Application\Data\ApplicationSummary;
@@ -18,7 +20,7 @@ final readonly class EloquentApplicationCreator implements ApplicationCreator
 {
     private const string DUPLICATE_CONSTRAINT = 'applications_org_job_candidate_unique';
 
-    public function __construct(private CandidateReferenceLookup $candidates) {}
+    public function __construct(private CandidateReferenceLookup $candidates, private AuditRecorder $audit) {}
 
     public function create(int $organisationId, int $actorUserId, int $jobId, int $candidateId): ApplicationSummary
     {
@@ -60,6 +62,10 @@ final readonly class EloquentApplicationCreator implements ApplicationCreator
                     'changed_by_user_id' => $actorUserId,
                     'note' => null,
                 ]);
+
+                $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'application.created', 'application', (int) $application->getKey(), [
+                    'candidate_id' => $candidateId, 'job_id' => $jobId,
+                ]));
 
                 $record = EloquentApplicationMapper::toRecord($application, (string) $job->getAttribute('title'));
 

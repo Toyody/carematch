@@ -30,5 +30,6 @@ interface CandidateDocumentStore
         int $organisationId,
         int $candidateId,
         int $documentId,
+        int $actorUserId,
     ): bool;
 }

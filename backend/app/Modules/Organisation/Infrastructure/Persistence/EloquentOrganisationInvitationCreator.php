@@ -2,6 +2,8 @@
 
 namespace App\Modules\Organisation\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Organisation\Application\Contracts\OrganisationInvitationCreator;
 use App\Modules\Organisation\Application\Data\OrganisationInvitationSummary;
 use App\Modules\Organisation\Application\Data\OrganisationRole;
@@ -16,6 +18,8 @@ use LogicException;
 final class EloquentOrganisationInvitationCreator implements OrganisationInvitationCreator
 {
     private const UNRESOLVED_UNIQUE_CONSTRAINT = 'org_invitations_unresolved_unique';
+
+    public function __construct(private AuditRecorder $audit) {}
 
     public function create(
         int $organisationId,
@@ -62,6 +66,7 @@ final class EloquentOrganisationInvitationCreator implements OrganisationInvitat
                 }
 
                 $unresolvedInvitation->forceFill(['revoked_at' => $now])->save();
+                $this->audit->record(new AuditEvent($organisationId, $inviterUserId, 'invitation.revoked', 'invitation', (int) $unresolvedInvitation->getKey(), ['reason' => 'expired_replacement']));
             }
 
             if ($inviteeUserId !== null) {
@@ -92,6 +97,8 @@ final class EloquentOrganisationInvitationCreator implements OrganisationInvitat
 
                 throw $exception;
             }
+
+            $this->audit->record(new AuditEvent($organisationId, $inviterUserId, 'invitation.created', 'invitation', (int) $invitation->getKey(), ['role' => $role->value]));
 
             return self::toSummary($invitation);
         });

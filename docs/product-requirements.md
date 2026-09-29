@@ -98,6 +98,20 @@ Expiry uses UTC calendar dates and a configurable 30-day warning window. A crede
 
 For each required Job qualification, the backend chooses the best Candidate evidence deterministically: valid, then expiring, then expired, otherwise missing. Overall requirement coverage is `satisfied`, `attention_required` when every requirement is usable but at least one is expiring, or `not_satisfied` when any requirement is expired or missing. This state is contextual to a Candidate and Job, never a global Candidate status.
 
+### Organisation audit trail
+
+CareMatch records successful, meaningful tenant business mutations with the
+trusted authenticated actor, stable event and subject identifiers, occurrence
+time and small allow-listed context. Only active Organisation Admins may read
+the paginated trail. Recruiters and Hiring Managers cannot access it.
+
+The trail does not record reads, authentication/password operations, failed
+attempts or arbitrary request payloads. It excludes tokens, session data,
+Candidate/Application notes, qualification reference numbers, document names
+and storage information. Recruitment status history remains a separate
+authoritative workflow timeline. Audit retention policy is deferred and must be
+selected before production use with real Candidate data.
+
 ## 5. Core User Flow
 
 A Recruiter can:

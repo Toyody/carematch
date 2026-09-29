@@ -2,17 +2,22 @@
 
 namespace App\Modules\Candidate\Infrastructure\Persistence;
 
+use App\Modules\Audit\Application\Contracts\AuditRecorder;
+use App\Modules\Audit\Application\Data\AuditEvent;
 use App\Modules\Candidate\Application\Contracts\CandidateDocumentStore;
 use App\Modules\Candidate\Application\Data\CandidateDocumentRecord;
 use App\Modules\Candidate\Application\Data\CandidateDocumentUpload;
 use App\Modules\Candidate\Application\Exceptions\CandidateDocumentPersistenceFailure;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 use Throwable;
 
-final class EloquentCandidateDocumentStore implements CandidateDocumentStore
+final readonly class EloquentCandidateDocumentStore implements CandidateDocumentStore
 {
+    public function __construct(private AuditRecorder $audit) {}
+
     public function list(int $organisationId, int $candidateId): array
     {
         $documents = CandidateDocument::query()
@@ -34,17 +39,17 @@ final class EloquentCandidateDocumentStore implements CandidateDocumentStore
         string $storageKey,
         CandidateDocumentUpload $upload,
     ): CandidateDocumentRecord {
-        $document = CandidateDocument::query()->create([
-            'organisation_id' => $organisationId,
-            'candidate_id' => $candidateId,
-            'original_name' => $upload->originalName,
-            'storage_key' => $storageKey,
-            'mime_type' => $upload->mimeType,
-            'size_bytes' => $upload->sizeBytes,
-            'uploaded_by_user_id' => $uploadedByUserId,
-        ]);
+        return DB::transaction(function () use ($organisationId, $candidateId, $uploadedByUserId, $storageKey, $upload): CandidateDocumentRecord {
+            $document = CandidateDocument::query()->create([
+                'organisation_id' => $organisationId, 'candidate_id' => $candidateId,
+                'original_name' => $upload->originalName, 'storage_key' => $storageKey,
+                'mime_type' => $upload->mimeType, 'size_bytes' => $upload->sizeBytes,
+                'uploaded_by_user_id' => $uploadedByUserId,
+            ]);
+            $this->audit->record(new AuditEvent($organisationId, $uploadedByUserId, 'candidate_document.uploaded', 'candidate_document', (int) $document->getKey(), ['candidate_id' => $candidateId]));
 
-        return self::toRecord($document);
+            return self::toRecord($document);
+        });
     }
 
     public function find(
@@ -65,13 +70,18 @@ final class EloquentCandidateDocumentStore implements CandidateDocumentStore
         int $organisationId,
         int $candidateId,
         int $documentId,
+        int $actorUserId,
     ): bool {
         try {
-            return CandidateDocument::query()
-                ->where('organisation_id', $organisationId)
-                ->where('candidate_id', $candidateId)
-                ->whereKey($documentId)
-                ->delete() === 1;
+            return DB::transaction(function () use ($organisationId, $candidateId, $documentId, $actorUserId): bool {
+                $deleted = CandidateDocument::query()->where('organisation_id', $organisationId)
+                    ->where('candidate_id', $candidateId)->whereKey($documentId)->delete() === 1;
+                if ($deleted) {
+                    $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'candidate_document.deleted', 'candidate_document', $documentId, ['candidate_id' => $candidateId]));
+                }
+
+                return $deleted;
+            });
         } catch (Throwable) {
             throw new CandidateDocumentPersistenceFailure;
         }

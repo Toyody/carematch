@@ -13,6 +13,6 @@ final readonly class AddJobQualificationRequirement
 
     public function handle(TenantContext $tenant, int $jobId, int $definitionId): JobQualificationRequirementRecord
     {
-        return $this->store->add($tenant->organisationId, $jobId, $definitionId) ?? throw new JobQualificationRequirementNotFound;
+        return $this->store->add($tenant->organisationId, $tenant->userId, $jobId, $definitionId) ?? throw new JobQualificationRequirementNotFound;
     }
 }

@@ -29,6 +29,7 @@ final readonly class UpdateCandidate
 
         return $this->candidates->update(
             $tenant->organisationId,
+            $tenant->userId,
             $candidateId,
             $changes,
         ) ?? throw new CandidateNotFound;
