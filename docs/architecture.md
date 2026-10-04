@@ -37,6 +37,10 @@ backend/app/
             Application/
             Infrastructure/
             Interfaces/
+        Analytics/
+            Application/
+            Infrastructure/
+            Interfaces/
         Audit/
             Application/
             Infrastructure/
@@ -63,6 +67,14 @@ owns no Candidate, Job, qualification, Application or persisted match record.
 Its Application layer depends on one focused read-model port and receives
 `TenantContext` explicitly; its PostgreSQL adapter performs the cross-module
 projection without importing another module's Eloquent model.
+
+Phase 7D introduces Analytics as a read-only module because it owns explicit UTC
+reporting-period, Application-cohort, funnel, time-to-stage and bounded Job
+aggregate semantics. It owns no transactional records and adds no analytics
+table. Its Application layer depends on one focused read-model port; its
+PostgreSQL adapter aggregates Candidate and Recruitment tables using only the
+trusted Organisation identifier. No Domain layer is added because these report
+definitions do not currently require reusable stateful domain behaviour.
 
 Qualification coverage is calculated in bounded reads: the tenant-scoped Job and Candidate are verified, required definitions are loaded in one query, and relevant Candidate evidence is loaded in one query. The framework-independent evaluator receives those records plus an explicit UTC date and warning threshold. No compliance rule is duplicated in React, and no global Candidate compliance flag is stored.
 
@@ -93,6 +105,15 @@ Organisation workspace. Its Application action depends on one focused read-model
 port, and its PostgreSQL adapter aggregates Candidate and Recruitment tables using
 trusted tenant identifiers. It does not expose a generic reporting framework or
 move Candidate, Job, Application or history ownership out of their modules.
+
+### Analytics
+
+Owns the deeper operational recruitment report and no business records. It is
+separate from Dashboard: Dashboard answers current-volume and recent-activity
+questions, while Analytics reports an explicit `applied_at` cohort over a UTC
+period and its later recorded progression. Candidate and Recruitment retain
+their tables and mutation rules. Analytics returns aggregate Job identity only,
+never Candidate identity, actor productivity or inferred personal attributes.
 
 ### Audit
 
@@ -379,6 +400,16 @@ qualification aggregation, existing Application status, ranking and pagination.
 `ST_Distance` returns geography metres converted to kilometres; optional radius
 filtering uses `ST_DWithin`. React only renders returned factors and does not
 reimplement ranking. No match read creates an Audit event.
+
+Analytics uses four fixed PostgreSQL queries regardless of Candidate, Job or
+Application count. One query returns summary, reached-stage funnel and current
+status counts; one uses `generate_series` for zero-filled UTC daily Application
+volume; one calculates Interview/Hired medians with `percentile_cont(0.5)` and
+sample sizes; one returns at most ten set-aggregated Job rows. Every CTE and join
+is tenant-scoped. Stage timestamps are the first matching immutable history row,
+not `applications.updated_at`; negative durations are excluded. React renders
+the backend result and does not reconstruct cohort or funnel semantics. Analytics
+reads do not create Audit events.
 
 Primary-flow query review also verifies that existing list/detail/document paths
 remain tenant-scoped, bounded where pagination applies, and batch-enriched where

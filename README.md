@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Toyody/carematch/actions/workflows/ci.yml/badge.svg)](https://github.com/Toyody/carematch/actions/workflows/ci.yml)
 
-CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It demonstrates tenant-safe candidate management, job requisitions, recruitment pipelines, private candidate documents, deterministic explainable matching, role-based access control, an append-only business audit trail, and a focused operational dashboard in a modular Laravel and Next.js application.
+CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It demonstrates tenant-safe candidate management, job requisitions, recruitment pipelines, private candidate documents, deterministic explainable matching, role-based access control, an append-only business audit trail, an operational dashboard, and cohort-based recruitment analytics in a modular Laravel and Next.js application.
 
 ![CareMatch organisation dashboard](docs/screenshots/organisation-dashboard.jpg)
 
@@ -26,6 +26,7 @@ CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It dem
 - Explainable Job-to-Candidate ranking using qualification coverage, exact occupation compatibility and PostGIS distance.
 - An Admin-only, tenant-scoped audit trail for meaningful business mutations.
 - An organisation dashboard with status breakdowns and recent activity.
+- UTC date-range recruitment analytics with reached-stage funnels, current cohort status, daily volume, median time-to-stage and bounded Job aggregates.
 
 ## Portfolio screens
 
@@ -39,7 +40,7 @@ All displayed names, email addresses, organisations, locations, notes, and job d
 
 ## Architecture
 
-The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, `Matching`, and `Audit`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
+The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, `Matching`, `Audit`, `Dashboard`, and `Analytics`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
 
 ```text
 Browser / Next.js SPA
@@ -52,7 +53,9 @@ Laravel REST API
   ├── Recruitment
   ├── Compliance
   ├── Matching
-  └── Audit
+  ├── Audit
+  ├── Dashboard
+  └── Analytics
         │
         ├── PostgreSQL 18 + PostGIS 3.6
         └── Private document storage
@@ -83,6 +86,10 @@ The dashboard uses fixed aggregate and recent-activity queries instead of loadin
 ### Deterministic matching
 
 The Job matching page ranks only Candidates from the resolved Organisation. It uses a documented lexicographic order: qualification coverage, trimmed case-insensitive exact occupation compatibility, known PostGIS distance in kilometres, then Candidate ID. It exposes each factor instead of an opaque score, treats missing distance as unavailable rather than zero, and never uses notes, availability, document contents, personal identifiers, free-text descriptions, AI or external geocoding. Matching is read-only decision support; human users remain responsible for recruitment decisions.
+
+### Recruitment analytics
+
+Analytics is separate from the lightweight Dashboard. It reports on Applications submitted in an explicit UTC period, then uses their authoritative status history to show reached-stage funnel counts, separate rejection outcomes, current cohort status, daily Application volume, median time to Interview/Hired with sample sizes, and the ten busiest referenced Jobs. It returns no Candidate identities and does not use audit metadata, free text, matching results, employee-performance metrics, demographic inference, prediction or AI. Reports are derived synchronously from PostgreSQL and are not persisted.
 
 ## Technology
 
@@ -181,4 +188,4 @@ compose.e2e.yaml    Isolated browser-test stack
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 5 and Phase 7A–7C is implemented. Matching is deterministic, tenant-scoped and PostGIS-backed; Audit events remain privacy-limited and append-only. Phase 6A repository-side production readiness is implemented, but no AWS deployment or RDS/PostGIS compatibility verification is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.
+The local and CI-tested portfolio scope through Phase 5 and Phase 7 is implemented. Matching is deterministic, tenant-scoped and PostGIS-backed; Analytics is cohort-based and read-only; Audit events remain privacy-limited and append-only. Phase 6A repository-side production readiness is implemented, but no AWS deployment or RDS/PostGIS compatibility verification is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.

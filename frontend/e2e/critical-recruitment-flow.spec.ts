@@ -164,6 +164,21 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   ).toBeVisible();
   await expect(dashboard.getByText("Offer to Hired")).toBeVisible();
 
+  await page.getByRole("link", { name: "Recruitment analytics" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Recruitment analytics" }),
+  ).toBeVisible();
+  const analyticsSummary = page.getByRole("region", { name: "Period summary" });
+  await expect(
+    analyticsSummary.getByText("Applications", { exact: true }).locator(".."),
+  ).toContainText("1");
+  await expect(
+    analyticsSummary.getByText("Hired outcome", { exact: true }).locator(".."),
+  ).toContainText("1");
+  await expect(page.getByRole("link", { name: jobTitle })).toBeVisible();
+
+  await page.goto(organisationPath!);
+
   await page.getByRole("link", { name: "Audit Trail" }).click();
   await expect(
     page.getByRole("heading", { name: "Audit Trail" }),

@@ -335,7 +335,42 @@ The Organisation workspace includes an intentionally small tenant-scoped dashboa
 All active Organisation roles may view the dashboard. Counts and activity are
 computed only for the route Organisation after active membership resolution.
 Advanced analytics, date-range reporting, charts and cross-tenant reporting are
-excluded.
+provided only through the separate Analytics experience below; the Dashboard
+itself remains deliberately small.
+
+### 12.1 Operational Recruitment Analytics
+
+All active Organisation roles may view a separate tenant-scoped Analytics report.
+Its Application cohort contains Applications whose `applied_at` falls within an
+inclusive UTC calendar-date range, implemented as `[from 00:00 UTC, day after to
+00:00 UTC)`. The default is the last 90 UTC calendar days including today; both
+dates must be supplied together for an explicit period, and the maximum is 365
+days. CareMatch does not yet model an Organisation reporting timezone.
+
+For that cohort, the reached-stage funnel reports Applied, Screening, Interview,
+Offer and Hired. Screening and later stages come from immutable status history,
+so a Hired Application also contributes to earlier stages it reached. Rejected
+is a separate terminal outcome rather than a funnel stage. A second distribution
+reports the cohort's current persisted status, with zero counts for absent states.
+Recent cohorts may not yet have matured through the funnel.
+
+Period summary metrics are new Candidate records, new Job records, Applications,
+Hired outcomes and Rejected outcomes. “New Jobs” deliberately means rows created
+during the period: normal Job lifecycle transitions do not currently maintain an
+authoritative first-open event timestamp in `jobs.opened_at`. Daily Application
+volume includes zero-value UTC dates. Time-to-Interview and time-to-Hired are the
+median elapsed days from `applications.applied_at` to the first authoritative
+matching transition, accompanied by sample size and returned as `null` when no
+valid sample exists. Negative malformed durations are excluded. Job rows aggregate
+cohort volume and reached stages, ordered by Application count, Hired count and
+Job ID, and are limited to ten.
+
+Analytics is operational reporting, not a warehouse or decision engine. It does
+not expose Candidate identities and does not use notes, descriptions, documents,
+credential numbers, location, audit metadata, Matching results, actor/recruiter
+performance, demographic inference, benchmarks, predictive analytics or AI. It
+is read-only, derived synchronously from authoritative PostgreSQL records, creates
+no Audit events and persists no report, cache or analytics event.
 
 ## 13. Portfolio Demo Data
 
@@ -365,7 +400,7 @@ unverified until Phase 6B/6C deployment and operational checks are complete.
 - Qualification expiry notifications
 - Redis and SQS processing
 - AI CV parsing and match explanations
-- Advanced analytics and observability
+- Advanced observability
 - Microservices and distributed architecture
 
 ## 15. Open Product Decisions
