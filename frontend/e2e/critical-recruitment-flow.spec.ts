@@ -59,6 +59,10 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   ).toBeVisible();
   await page.getByLabel("First name").fill(candidateName);
   await page.getByLabel("Last name").fill("Lovelace");
+  await page.getByLabel("Occupation").fill("Registered Nurse");
+  await page.getByLabel("Location").fill("Melbourne CBD");
+  await page.getByLabel("Latitude").fill("-37.8136");
+  await page.getByLabel("Longitude").fill("144.9631");
   await page.getByRole("button", { name: "Create candidate" }).click();
   await expect(
     page.getByRole("heading", { name: `${candidateName} Lovelace` }),
@@ -76,6 +80,10 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   await page.getByRole("link", { name: "Add job" }).click();
   await expect(page.getByRole("heading", { name: "Add job" })).toBeVisible();
   await page.getByLabel("Title").fill(jobTitle);
+  await page.getByLabel("Occupation").fill("Registered Nurse");
+  await page.getByLabel("Location").fill("Melbourne CBD");
+  await page.getByLabel("Latitude").fill("-37.8136");
+  await page.getByLabel("Longitude").fill("144.9631");
   await page.getByRole("button", { name: "Create draft" }).click();
   await expect(page.getByRole("heading", { name: jobTitle })).toBeVisible();
   await page.getByRole("button", { name: "Open job" }).click();
@@ -85,6 +93,19 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   });
   await page.getByRole("button", { name: "Add requirement" }).click();
   await expect(page.getByText(qualificationName)).toBeVisible();
+
+  await page.getByRole("link", { name: "View candidate matches" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Candidate matches" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(`Rank 1: ${candidateName} Lovelace`),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Qualifications: satisfied (1/1 satisfied)"),
+  ).toBeVisible();
+  await expect(page.getByText("Occupation: match")).toBeVisible();
+  await expect(page.getByText("Distance: 0.0 km")).toBeVisible();
 
   await page.goto(organisationPath!);
   await page.getByRole("link", { name: "Manage applications" }).click();

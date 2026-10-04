@@ -7,7 +7,7 @@ use App\Modules\Candidate\Application\Data\CandidateRecord;
 interface CandidateUpdater
 {
     /**
-     * @param  array<string, string|null>  $changes
+     * @param  array<string, string|float|null>  $changes
      */
     public function update(int $organisationId, int $actorUserId, int $candidateId, array $changes): ?CandidateRecord;
 }

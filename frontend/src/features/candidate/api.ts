@@ -7,7 +7,9 @@ export interface Candidate {
   first_name: string;
   id: number;
   last_name: string;
+  latitude?: number | null;
   location: string | null;
+  longitude?: number | null;
   notes: string | null;
   occupation: string | null;
   phone: string | null;
@@ -19,7 +21,9 @@ export interface CandidateInput {
   email: string | null;
   first_name: string;
   last_name: string;
+  latitude?: number | null;
   location: string | null;
+  longitude?: number | null;
   notes: string | null;
   occupation: string | null;
   phone: string | null;

@@ -105,6 +105,9 @@ describe("JobDetail", () => {
         "Your Organisation role has read-only Job access.",
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "View candidate matches" }),
+    ).toHaveAttribute("href", "/organisations/11/jobs/9/matches");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 

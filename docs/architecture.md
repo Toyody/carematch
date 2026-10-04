@@ -41,16 +41,28 @@ backend/app/
             Application/
             Infrastructure/
             Interfaces/
+        Matching/
+            Domain/
+            Application/
+            Infrastructure/
+            Interfaces/
 ```
 
 Laravel bootstrap, shared framework configuration and genuinely cross-cutting providers may remain in conventional Laravel locations. A generic `Shared` or `Common` module must not become a dumping ground.
 
-Phase 7A introduces a real Compliance module because it owns the shared Organisation qualification catalogue, date-based expiry semantics and deterministic Candidate/Job requirement evaluator. Candidate credentials remain owned by Candidate and Job requirements remain owned by Recruitment. Their Infrastructure adapters compose persisted data through focused Compliance Application contracts; Application and Domain code do not import another module's Eloquent models. Matching, asynchronous messaging and AI remain future concerns and must not be represented by empty modules.
+Phase 7A introduces a real Compliance module because it owns the shared Organisation qualification catalogue, date-based expiry semantics and deterministic Candidate/Job requirement evaluator. Candidate credentials remain owned by Candidate and Job requirements remain owned by Recruitment. Their Infrastructure adapters compose persisted data through focused Compliance Application contracts; Application and Domain code do not import another module's Eloquent models. Asynchronous messaging and AI remain future concerns and must not be represented by empty modules.
 
 Phase 7B introduces Audit as a real module. It owns the structured recording
 contract, append-only persistence and Admin-only tenant read API. Business
 modules explicitly record semantic events at mutation boundaries; no generic
 event bus, Eloquent observer, request logger or arbitrary metadata sink is used.
+
+Phase 7C introduces Matching because it owns the Job-to-Candidate ranking rule,
+match result DTOs, tenant-safe use case and PostgreSQL/PostGIS read adapter. It
+owns no Candidate, Job, qualification, Application or persisted match record.
+Its Application layer depends on one focused read-model port and receives
+`TenantContext` explicitly; its PostgreSQL adapter performs the cross-module
+projection without importing another module's Eloquent model.
 
 Qualification coverage is calculated in bounded reads: the tenant-scoped Job and Candidate are verified, required definitions are loaded in one query, and relevant Candidate evidence is loaded in one query. The framework-independent evaluator receives those records plus an explicit UTC date and warning threshold. No compliance rule is duplicated in React, and no global Candidate compliance flag is stored.
 
@@ -88,6 +100,13 @@ Owns Organisation-scoped audit-event semantics, persistence and querying. Other
 modules depend only on the focused `AuditRecorder` Application contract and
 provide trusted tenant/actor identifiers plus allow-listed metadata. Actor
 display is batch-enriched through the existing Identity Application lookup.
+
+### Matching
+
+Owns deterministic, explainable matching policy and the read-only Job match API.
+The authoritative order is qualification coverage, exact normalised occupation,
+known distance and Candidate ID. The implementation deliberately has no numeric
+score, cache table, generic search framework, external geocoder or AI component.
 
 ## 4. Layers and Dependency Rule
 
@@ -164,6 +183,13 @@ request-scoped `TenantContext` explicitly. All active roles may read it. The
 adapter applies `organisation_id` inside each count, aggregation and recent-history
 query; it never aggregates globally and filters afterward. Recent activity joins
 Candidate and Job identity in the same bounded query, avoiding per-item lookups.
+
+The Phase 7C match endpoint follows the same tenant chain: `auth:sanctum`, active
+membership resolution, Policy, then an explicit `TenantContext` passed to the
+Application action. The adapter resolves the Job by trusted Organisation and Job
+IDs and filters Candidates by that same Organisation inside SQL. Cross-tenant and
+missing Jobs share `404` semantics, and client input cannot select an
+Organisation or Candidate pool.
 
 ## 7. Authentication and RBAC
 
@@ -345,6 +371,14 @@ bounded latest-five status-history query with Candidate and Job enrichment. It
 does not load collections to count them, issue one query per status or enrich
 activity with N+1 lookups. Representative `EXPLAIN ANALYZE` inspection determines
 whether an index is added; indexes are not inferred mechanically from API fields.
+
+Matching uses two database queries regardless of Candidate count: one scoped Job
+existence/coordinate query and one set-based query for Candidate factors,
+qualification aggregation, existing Application status, ranking and pagination.
+`row_number()` establishes global deterministic rank before page slicing.
+`ST_Distance` returns geography metres converted to kilometres; optional radius
+filtering uses `ST_DWithin`. React only renders returned factors and does not
+reimplement ranking. No match read creates an Audit event.
 
 Primary-flow query review also verifies that existing list/detail/document paths
 remain tenant-scoped, bounded where pagination applies, and batch-enriched where

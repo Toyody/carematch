@@ -158,6 +158,11 @@ export function JobDetail({
         mayManage={mayWrite}
         organisationId={organisationId}
       />
+      <p>
+        <Link href={`/organisations/${organisationId}/jobs/${jobId}/matches`}>
+          View candidate matches
+        </Link>
+      </p>
       <Link href={`/organisations/${organisationId}/jobs`}>Back to jobs</Link>
     </Shell>
   );
@@ -188,6 +193,8 @@ function ReadOnly({ job }: { job: Job }) {
   const values = [
     ["Occupation", job.occupation],
     ["Location", job.location],
+    ["Latitude", job.latitude?.toString() ?? null],
+    ["Longitude", job.longitude?.toString() ?? null],
     ["Employment type", job.employment_type],
     ["Opening date", job.opened_at],
     ["Closing date", job.closes_at],

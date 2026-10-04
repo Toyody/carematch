@@ -17,7 +17,18 @@ final class Candidate extends Model
         'phone',
         'occupation',
         'location',
+        'latitude',
+        'longitude',
         'availability',
         'notes',
     ];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'float',
+            'longitude' => 'float',
+        ];
+    }
 }

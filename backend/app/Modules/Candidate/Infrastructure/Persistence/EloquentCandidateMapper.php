@@ -20,11 +20,20 @@ final class EloquentCandidateMapper
             phone: self::nullableString($candidate, 'phone'),
             occupation: self::nullableString($candidate, 'occupation'),
             location: self::nullableString($candidate, 'location'),
+            latitude: self::nullableFloat($candidate, 'latitude'),
+            longitude: self::nullableFloat($candidate, 'longitude'),
             availability: self::nullableString($candidate, 'availability'),
             notes: self::nullableString($candidate, 'notes'),
             createdAt: self::date($candidate, 'created_at'),
             updatedAt: self::date($candidate, 'updated_at'),
         );
+    }
+
+    private static function nullableFloat(Candidate $candidate, string $attribute): ?float
+    {
+        $value = $candidate->getAttribute($attribute);
+
+        return $value === null ? null : (float) $value;
     }
 
     private static function nullableString(Candidate $candidate, string $attribute): ?string

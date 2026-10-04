@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class CandidateResource extends JsonResource
 {
     /**
-     * @return array<string, int|string|null>
+     * @return array<string, float|int|string|null>
      */
     public function toArray(Request $request): array
     {
@@ -27,6 +27,8 @@ final class CandidateResource extends JsonResource
             'phone' => $candidate->phone,
             'occupation' => $candidate->occupation,
             'location' => $candidate->location,
+            'latitude' => $candidate->latitude,
+            'longitude' => $candidate->longitude,
             'availability' => $candidate->availability,
             'notes' => $candidate->notes,
             'created_at' => $candidate->createdAt->format(DATE_ATOM),

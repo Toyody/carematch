@@ -48,7 +48,7 @@ Before Phase 6B, an operator must choose or create:
 - a VPC with at least two public ALB/task subnets and private RDS subnets;
 - ALB, target groups and path rules for `/api/*`, `/sanctum/*` and the frontend default;
 - backend and frontend ECS services with containers named `backend` and `frontend`;
-- an RDS PostgreSQL instance whose selected major version has been verified in the chosen region;
+- an RDS PostgreSQL instance whose selected PostgreSQL 18 engine supports the required PostGIS extension version in the chosen region;
 - a private S3 bucket for candidate documents;
 - ECS execution/task roles and a GitHub OIDC deployment role;
 - CloudWatch log groups with explicit retention.
@@ -75,7 +75,7 @@ Inject `APP_KEY`, database credentials and the demo password through ECS secrets
 
 ## Database, sessions and cache
 
-RDS PostgreSQL is the source of truth. The standard `sessions`, `cache` and `cache_locks` tables are deployed by migrations. Database cache gives authentication rate limits a shared store across backend tasks. Local and E2E stacks continue to use file cache, and queues remain synchronous.
+RDS PostgreSQL is the source of truth. Phase 7C requires PostGIS and its migration executes `CREATE EXTENSION IF NOT EXISTS postgis`; before Phase 6B deployment, verify PostgreSQL 18 compatibility, the available PostGIS version and the migration role's extension permission on the chosen RDS engine. Local and CI use PostgreSQL 18.6 with PostGIS 3.6. This does not claim that RDS compatibility has already been verified. The standard `sessions`, `cache` and `cache_locks` tables are deployed by migrations. Database cache gives authentication rate limits a shared store across backend tasks. Local and E2E stacks continue to use file cache, and queues remain synchronous.
 
 Run migrations as a one-off ECS task using the exact backend image being deployed:
 

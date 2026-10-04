@@ -9,7 +9,9 @@ export interface Job {
   description: string | null;
   employment_type: string | null;
   id: number;
+  latitude?: number | null;
   location: string | null;
+  longitude?: number | null;
   occupation: string | null;
   opened_at: string | null;
   status: JobStatus;
@@ -21,7 +23,9 @@ export interface JobInput {
   closes_at: string | null;
   description: string | null;
   employment_type: string | null;
+  latitude?: number | null;
   location: string | null;
+  longitude?: number | null;
   occupation: string | null;
   opened_at: string | null;
   title: string;

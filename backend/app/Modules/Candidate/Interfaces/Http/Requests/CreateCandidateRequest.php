@@ -32,6 +32,8 @@ final class CreateCandidateRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'occupation' => ['nullable', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['present_with:longitude', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['present_with:latitude', 'nullable', 'numeric', 'between:-180,180'],
             'availability' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'id' => ['prohibited'],
@@ -61,9 +63,18 @@ final class CreateCandidateRequest extends FormRequest
             phone: $this->nullableValidatedString('phone'),
             occupation: $this->nullableValidatedString('occupation'),
             location: $this->nullableValidatedString('location'),
+            latitude: $this->nullableValidatedFloat('latitude'),
+            longitude: $this->nullableValidatedFloat('longitude'),
             availability: $this->nullableValidatedString('availability'),
             notes: $this->nullableValidatedString('notes'),
         );
+    }
+
+    private function nullableValidatedFloat(string $field): ?float
+    {
+        $value = $this->validated($field);
+
+        return $value === null ? null : (float) $value;
     }
 
     protected function prepareForValidation(): void
@@ -107,6 +118,8 @@ final class CreateCandidateRequest extends FormRequest
             'phone',
             'occupation',
             'location',
+            'latitude',
+            'longitude',
             'availability',
             'notes',
         ];

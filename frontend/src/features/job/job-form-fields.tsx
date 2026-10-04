@@ -25,6 +25,33 @@ export function JobFormFields({ job }: { job?: Job }) {
         maxLength={255}
         name="location"
       />
+      <fieldset>
+        <legend>Optional matching coordinates</legend>
+        <p>
+          Coordinates are entered explicitly; CareMatch does not geocode the
+          location label.
+        </p>
+        <label htmlFor="job-latitude">Latitude</label>
+        <input
+          defaultValue={job?.latitude ?? ""}
+          id="job-latitude"
+          max="90"
+          min="-90"
+          name="latitude"
+          step="0.000001"
+          type="number"
+        />
+        <label htmlFor="job-longitude">Longitude</label>
+        <input
+          defaultValue={job?.longitude ?? ""}
+          id="job-longitude"
+          max="180"
+          min="-180"
+          name="longitude"
+          step="0.000001"
+          type="number"
+        />
+      </fieldset>
       <label htmlFor="job-employment-type">Employment type</label>
       <input
         defaultValue={job?.employment_type ?? ""}
@@ -68,11 +95,17 @@ export function jobInput(form: HTMLFormElement) {
     const value = optional(name);
     return value === null ? null : new Date(value).toISOString();
   };
+  const coordinate = (name: string) => {
+    const value = optional(name);
+    return value === null ? null : Number(value);
+  };
   return {
     closes_at: date("closes_at"),
     description: optional("description"),
     employment_type: optional("employment_type"),
+    latitude: coordinate("latitude"),
     location: optional("location"),
+    longitude: coordinate("longitude"),
     occupation: optional("occupation"),
     opened_at: date("opened_at"),
     title: String(data.get("title") ?? "").trim(),

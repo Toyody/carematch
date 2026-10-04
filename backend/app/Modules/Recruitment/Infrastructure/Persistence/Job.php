@@ -13,6 +13,8 @@ final class Job extends Model
         'title',
         'occupation',
         'location',
+        'latitude',
+        'longitude',
         'employment_type',
         'description',
         'status',
@@ -27,6 +29,8 @@ final class Job extends Model
             'status' => JobStatus::class,
             'opened_at' => 'immutable_datetime',
             'closes_at' => 'immutable_datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 }

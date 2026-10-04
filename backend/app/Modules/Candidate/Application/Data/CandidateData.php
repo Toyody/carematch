@@ -11,6 +11,8 @@ final readonly class CandidateData
         public ?string $phone,
         public ?string $occupation,
         public ?string $location,
+        public ?float $latitude,
+        public ?float $longitude,
         public ?string $availability,
         public ?string $notes,
     ) {}

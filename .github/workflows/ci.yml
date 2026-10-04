@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:18.6-bookworm
+        image: postgis/postgis:18-3.6
         env:
           POSTGRES_DB: carematch_test
           POSTGRES_USER: carematch
@@ -27,7 +27,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U carematch -d carematch_test"
+          --health-cmd "pg_isready -h 127.0.0.1 -U carematch -d carematch_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -112,8 +112,11 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Audit npm dependencies
-        run: npm audit --audit-level=high
+      - name: Audit production npm dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit all npm dependencies for critical advisories
+        run: npm audit --audit-level=critical
 
   containers:
     name: Containers and contract

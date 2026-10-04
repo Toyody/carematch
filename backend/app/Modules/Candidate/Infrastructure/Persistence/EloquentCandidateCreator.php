@@ -19,7 +19,8 @@ final readonly class EloquentCandidateCreator implements CandidateCreator
             $candidate = Candidate::query()->create([
                 'organisation_id' => $organisationId, 'first_name' => $data->firstName, 'last_name' => $data->lastName,
                 'email' => $data->email, 'phone' => $data->phone, 'occupation' => $data->occupation,
-                'location' => $data->location, 'availability' => $data->availability, 'notes' => $data->notes,
+                'location' => $data->location, 'latitude' => $data->latitude, 'longitude' => $data->longitude,
+                'availability' => $data->availability, 'notes' => $data->notes,
             ]);
 
             $this->audit->record(new AuditEvent($organisationId, $actorUserId, 'candidate.created', 'candidate', (int) $candidate->getKey()));

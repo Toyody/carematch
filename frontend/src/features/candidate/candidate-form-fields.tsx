@@ -54,6 +54,33 @@ export function CandidateFormFields({ candidate }: { candidate?: Candidate }) {
         name="location"
       />
 
+      <fieldset>
+        <legend>Optional matching coordinates</legend>
+        <p>
+          Use approximate locality coordinates, not a private street address.
+        </p>
+        <label htmlFor="candidate-latitude">Latitude</label>
+        <input
+          defaultValue={candidate?.latitude ?? ""}
+          id="candidate-latitude"
+          max="90"
+          min="-90"
+          name="latitude"
+          step="0.000001"
+          type="number"
+        />
+        <label htmlFor="candidate-longitude">Longitude</label>
+        <input
+          defaultValue={candidate?.longitude ?? ""}
+          id="candidate-longitude"
+          max="180"
+          min="-180"
+          name="longitude"
+          step="0.000001"
+          type="number"
+        />
+      </fieldset>
+
       <label htmlFor="candidate-availability">Availability</label>
       <input
         defaultValue={candidate?.availability ?? ""}
@@ -81,13 +108,19 @@ export function candidateInput(form: HTMLFormElement) {
 
     return value === "" ? null : value;
   };
+  const coordinate = (name: string) => {
+    const value = optional(name);
+    return value === null ? null : Number(value);
+  };
 
   return {
     availability: optional("availability"),
     email: optional("email"),
     first_name: String(data.get("first_name") ?? ""),
     last_name: String(data.get("last_name") ?? ""),
+    latitude: coordinate("latitude"),
     location: optional("location"),
+    longitude: coordinate("longitude"),
     notes: optional("notes"),
     occupation: optional("occupation"),
     phone: optional("phone"),

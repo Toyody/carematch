@@ -5,6 +5,7 @@ use App\Modules\Candidate\Infrastructure\Providers\CandidateServiceProvider;
 use App\Modules\Compliance\Infrastructure\Providers\ComplianceServiceProvider;
 use App\Modules\Dashboard\Infrastructure\Providers\DashboardServiceProvider;
 use App\Modules\Identity\Infrastructure\Providers\IdentityServiceProvider;
+use App\Modules\Matching\Infrastructure\Providers\MatchingServiceProvider;
 use App\Modules\Organisation\Infrastructure\Providers\OrganisationServiceProvider;
 use App\Modules\Recruitment\Infrastructure\Providers\RecruitmentServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -17,5 +18,6 @@ return [
     CandidateServiceProvider::class,
     ComplianceServiceProvider::class,
     RecruitmentServiceProvider::class,
+    MatchingServiceProvider::class,
     DashboardServiceProvider::class,
 ];
