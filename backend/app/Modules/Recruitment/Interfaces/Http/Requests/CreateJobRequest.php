@@ -21,6 +21,8 @@ final class CreateJobRequest extends JobRequest
             'title' => ['required', 'string', 'max:200'],
             'occupation' => ['nullable', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['present_with:longitude', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['present_with:latitude', 'nullable', 'numeric', 'between:-180,180'],
             'employment_type' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:10000'],
             'opened_at' => ['nullable', 'date'],
@@ -41,6 +43,8 @@ final class CreateJobRequest extends JobRequest
             title: (string) $this->validated('title'),
             occupation: $this->nullableString('occupation'),
             location: $this->nullableString('location'),
+            latitude: $this->nullableFloat('latitude'),
+            longitude: $this->nullableFloat('longitude'),
             employmentType: $this->nullableString('employment_type'),
             description: $this->nullableString('description'),
             openedAt: $this->nullableDate('opened_at'),
@@ -48,10 +52,17 @@ final class CreateJobRequest extends JobRequest
         );
     }
 
+    private function nullableFloat(string $field): ?float
+    {
+        $value = $this->validated($field);
+
+        return $value === null ? null : (float) $value;
+    }
+
     protected function prepareForValidation(): void
     {
         $values = [];
-        foreach (['title', 'occupation', 'location', 'employment_type', 'description', 'opened_at', 'closes_at'] as $field) {
+        foreach (['title', 'occupation', 'location', 'latitude', 'longitude', 'employment_type', 'description', 'opened_at', 'closes_at'] as $field) {
             $value = $this->input($field);
             if (is_string($value)) {
                 $values[$field] = trim($value);

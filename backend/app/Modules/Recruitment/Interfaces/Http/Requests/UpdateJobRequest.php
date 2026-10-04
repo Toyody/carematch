@@ -20,6 +20,8 @@ final class UpdateJobRequest extends JobRequest
             'title' => ['sometimes', 'required', 'string', 'max:200'],
             'occupation' => ['sometimes', 'nullable', 'string', 'max:255'],
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'latitude' => ['present_with:longitude', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['present_with:latitude', 'nullable', 'numeric', 'between:-180,180'],
             'employment_type' => ['sometimes', 'nullable', 'string', 'max:100'],
             'description' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'opened_at' => ['sometimes', 'nullable', 'date'],
@@ -34,7 +36,7 @@ final class UpdateJobRequest extends JobRequest
         ];
     }
 
-    /** @return array<string, string|DateTimeImmutable|null> */
+    /** @return array<string, string|float|DateTimeImmutable|null> */
     public function jobChanges(): array
     {
         $changes = [];
@@ -42,6 +44,12 @@ final class UpdateJobRequest extends JobRequest
             if ($this->exists($field)) {
                 $value = $this->validated($field);
                 $changes[$field] = $value === null ? null : (string) $value;
+            }
+        }
+        foreach (['latitude', 'longitude'] as $field) {
+            if ($this->exists($field)) {
+                $value = $this->validated($field);
+                $changes[$field] = $value === null ? null : (float) $value;
             }
         }
         foreach (['opened_at', 'closes_at'] as $field) {
@@ -57,7 +65,7 @@ final class UpdateJobRequest extends JobRequest
     protected function prepareForValidation(): void
     {
         $values = [];
-        foreach (['title', 'occupation', 'location', 'employment_type', 'description', 'opened_at', 'closes_at'] as $field) {
+        foreach (['title', 'occupation', 'location', 'latitude', 'longitude', 'employment_type', 'description', 'opened_at', 'closes_at'] as $field) {
             if ($this->exists($field) && is_string($this->input($field))) {
                 $values[$field] = trim((string) $this->input($field));
             }

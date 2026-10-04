@@ -243,7 +243,44 @@ Initial behaviour:
 - Applications: filter by job, candidate and status; sort by applied or updated date.
 - Pagination defaults to 20 and has a server-enforced maximum page size of 100.
 
-Fuzzy search, full-text ranking, PostGIS and advanced matching are not MVP requirements.
+Fuzzy search and full-text ranking are not MVP requirements. Phase 7C adds only the explicit deterministic matching contract below; it does not introduce fuzzy or AI ranking.
+
+### 10.1 Deterministic Job-to-Candidate Matching
+
+All active Organisation roles may view the read-only Candidate matches for a
+tenant-owned Job. Draft, Open, Closed and Archived Jobs remain readable; an
+Archived Job is not made actionable by matching. Results contain only Candidates
+owned by the resolved Organisation and are paginated at 20 by default and 100 at
+maximum.
+
+CareMatch uses deterministic lexicographic ranking, not an arbitrary percentage:
+
+1. qualification coverage: `satisfied`, then `attention_required`, then `not_satisfied`;
+2. occupation: trimmed, case-insensitive exact `match`, then `unknown`, then `mismatch`;
+3. known geographic distance ascending, with unavailable distance last;
+4. Candidate ID ascending as the final stable tie-breaker.
+
+Qualification coverage retains the Phase 7A meanings. A Job with no requirements
+is satisfied. Expiring evidence requires attention, while expired or missing
+evidence is not satisfied. Distance uses PostGIS geography in kilometres. An
+optional `max_distance_km` greater than zero and at most 1,000 filters through
+`ST_DWithin`; a Job must have coordinates and Candidates without coordinates
+cannot satisfy the radius. Without that filter, unknown distance is returned as
+`null`, never zero. The response also exposes any existing Application status
+but never creates or changes an Application.
+
+Candidate availability, Candidate notes, Job description, human-readable
+location strings, names, email, phone, documents, audit history and credential
+numbers are not matching signals. No fuzzy occupation taxonomy, free-text
+heuristic, AI, external geocoder or hidden score is used. Matching is decision
+support only and does not hire, reject or decide regulatory compliance; a human
+user remains responsible for every recruitment decision.
+
+Candidate and Job coordinates are optional approximate recruitment-location
+data. Latitude and longitude must be supplied together and lie within valid
+ranges. They are never derived from the location label. Users should enter
+locality-level data, not a private residential address, and raw values must not
+be written to audit metadata or application logs.
 
 ## 11. Candidate Documents and Sensitive Data
 
@@ -323,8 +360,8 @@ unverified until Phase 6B/6C deployment and operational checks are complete.
 - Custom roles and permission builders
 - Compliance management
 - Qualifications and certifications
-- Candidate matching
-- PostGIS distance matching
+- Fuzzy, semantic or AI matching
+- Automated geocoding and occupation taxonomies
 - Qualification expiry notifications
 - Redis and SQS processing
 - AI CV parsing and match explanations

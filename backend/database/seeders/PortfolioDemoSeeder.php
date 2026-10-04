@@ -170,16 +170,16 @@ final class PortfolioDemoSeeder extends Seeder
     private function candidates(Organisation $organisation): array
     {
         $definitions = [
-            'avery' => ['Avery', 'Morgan', 'Registered Nurse', 'avery.morgan@example.test', 'North District', 'Available now'],
-            'maya' => ['Maya', 'Chen', 'Physiotherapist', 'maya.chen@example.test', 'West District', 'Four weeks notice'],
-            'elliot' => ['Elliot', 'Brooks', 'Occupational Therapist', 'elliot.brooks@example.test', 'Central District', 'Available now'],
-            'priya' => ['Priya', 'Shah', 'Clinical Support Worker', 'priya.shah@example.test', 'South District', 'Two weeks notice'],
-            'jordan' => ['Jordan', 'Lee', 'Registered Nurse', 'jordan.lee@example.test', 'East District', 'Available from October'],
-            'casey' => ['Casey', 'Taylor', 'Physiotherapist', 'casey.taylor@example.test', 'North District', 'Available now'],
+            'avery' => ['Avery', 'Morgan', 'Registered Nurse', 'avery.morgan@example.test', 'Melbourne CBD', -37.8136, 144.9631, 'Available now'],
+            'maya' => ['Maya', 'Chen', 'Physiotherapist', 'maya.chen@example.test', 'Richmond', -37.8183, 144.9671, 'Four weeks notice'],
+            'elliot' => ['Elliot', 'Brooks', 'Occupational Therapist', 'elliot.brooks@example.test', 'Geelong', -38.1499, 144.3617, 'Available now'],
+            'priya' => ['Priya', 'Shah', 'Clinical Support Worker', 'priya.shah@example.test', 'Ballarat', -37.5622, 143.8503, 'Two weeks notice'],
+            'jordan' => ['Jordan', 'Lee', 'Registered Nurse', 'jordan.lee@example.test', 'Fitzroy', -37.7984, 144.9783, 'Available from October'],
+            'casey' => ['Casey', 'Taylor', 'Physiotherapist', 'casey.taylor@example.test', 'Location unavailable', null, null, 'Available now'],
         ];
 
         $candidates = [];
-        foreach ($definitions as $key => [$firstName, $lastName, $occupation, $email, $location, $availability]) {
+        foreach ($definitions as $key => [$firstName, $lastName, $occupation, $email, $location, $latitude, $longitude, $availability]) {
             $matches = Candidate::query()
                 ->where('organisation_id', $organisation->getKey())
                 ->where('email', $email)
@@ -198,6 +198,8 @@ final class PortfolioDemoSeeder extends Seeder
                 'phone' => null,
                 'occupation' => $occupation,
                 'location' => $location,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
                 'availability' => $availability,
                 'notes' => self::DEMO_CANDIDATE_NOTE,
             ];
@@ -224,16 +226,16 @@ final class PortfolioDemoSeeder extends Seeder
     private function jobs(Organisation $organisation): array
     {
         $definitions = [
-            'nurse' => ['Registered Nurse — Acute Care', 'Registered Nurse', 'North District', 'Full-time', JobStatus::Open],
-            'physio' => ['Physiotherapist — Community Rehabilitation', 'Physiotherapist', 'West District', 'Part-time', JobStatus::Open],
-            'occupational' => ['Occupational Therapist — Rehabilitation Services', 'Occupational Therapist', 'Central District', 'Full-time', JobStatus::Open],
-            'support' => ['Clinical Support Worker — Inpatient Services', 'Clinical Support Worker', 'South District', 'Full-time', JobStatus::Closed],
-            'paediatric' => ['Occupational Therapist — Paediatric Services', 'Occupational Therapist', 'East District', 'Part-time', JobStatus::Draft],
-            'outpatient' => ['Registered Nurse — Outpatient Clinic', 'Registered Nurse', 'Central District', 'Casual', JobStatus::Archived],
+            'nurse' => ['Registered Nurse — Acute Care', 'Registered Nurse', 'Melbourne CBD', -37.8136, 144.9631, 'Full-time', JobStatus::Open],
+            'physio' => ['Physiotherapist — Community Rehabilitation', 'Physiotherapist', 'Richmond', -37.8183, 144.9671, 'Part-time', JobStatus::Open],
+            'occupational' => ['Occupational Therapist — Rehabilitation Services', 'Occupational Therapist', 'Melbourne CBD', -37.8136, 144.9631, 'Full-time', JobStatus::Open],
+            'support' => ['Clinical Support Worker — Inpatient Services', 'Clinical Support Worker', 'South Yarra', -37.8396, 144.9926, 'Full-time', JobStatus::Closed],
+            'paediatric' => ['Occupational Therapist — Paediatric Services', 'Occupational Therapist', 'Box Hill', -37.8192, 145.1218, 'Part-time', JobStatus::Draft],
+            'outpatient' => ['Registered Nurse — Outpatient Clinic', 'Registered Nurse', 'Location unavailable', null, null, 'Casual', JobStatus::Archived],
         ];
 
         $jobs = [];
-        foreach ($definitions as $key => [$title, $occupation, $location, $employmentType, $status]) {
+        foreach ($definitions as $key => [$title, $occupation, $location, $latitude, $longitude, $employmentType, $status]) {
             $matches = Job::query()
                 ->where('organisation_id', $organisation->getKey())
                 ->where('title', $title)
@@ -248,6 +250,8 @@ final class PortfolioDemoSeeder extends Seeder
                 'title' => $title,
                 'occupation' => $occupation,
                 'location' => $location,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
                 'employment_type' => $employmentType,
                 'description' => self::DEMO_JOB_DESCRIPTION,
                 'status' => $status,
@@ -293,8 +297,12 @@ final class PortfolioDemoSeeder extends Seeder
         $credentials = [
             [$candidates['avery'], $definitions['Registered Nurse registration'], 'SYNTHETIC-RN-AVERY', $today->addYear()],
             [$candidates['avery'], $definitions['CPR'], 'SYNTHETIC-CPR-AVERY', $today->addDays(10)],
+            [$candidates['avery'], $definitions['First Aid'], 'SYNTHETIC-FA-AVERY', $today->addYear()],
             [$candidates['maya'], $definitions['First Aid'], 'SYNTHETIC-FA-MAYA', $today->subDay()],
             [$candidates['elliot'], $definitions['Working with Children Check'], 'SYNTHETIC-WCC-ELLIOT', null],
+            [$candidates['jordan'], $definitions['Registered Nurse registration'], 'SYNTHETIC-RN-JORDAN', $today->addYear()],
+            [$candidates['jordan'], $definitions['CPR'], 'SYNTHETIC-CPR-JORDAN', $today->addYear()],
+            [$candidates['jordan'], $definitions['First Aid'], 'SYNTHETIC-FA-JORDAN', $today->addYear()],
         ];
         foreach ($credentials as [$candidate, $definition, $number, $expiry]) {
             CandidateQualification::query()->updateOrCreate(

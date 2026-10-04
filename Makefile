@@ -77,7 +77,8 @@ build:
 
 audit:
 	$(DOCKER_COMPOSE) run --rm backend composer audit
-	$(DOCKER_COMPOSE) run --rm frontend npm audit --audit-level=high
+	$(DOCKER_COMPOSE) run --rm frontend npm audit --omit=dev --audit-level=high
+	$(DOCKER_COMPOSE) run --rm frontend npm audit --audit-level=critical
 
 openapi-lint:
 	docker run --rm -v "$(CURDIR)/openapi:/spec" redocly/cli:2.47.0 lint --config /spec/redocly.yaml /spec/openapi.yaml

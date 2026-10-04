@@ -63,7 +63,9 @@ final class CandidateManagementTest extends TestCase
             'first_name',
             'id',
             'last_name',
+            'latitude',
             'location',
+            'longitude',
             'notes',
             'occupation',
             'phone',
@@ -435,6 +437,27 @@ final class CandidateManagementTest extends TestCase
             'id' => $candidate->getKey(),
             'first_name' => 'Unchanged',
         ]);
+    }
+
+    public function test_candidate_coordinates_require_a_valid_pair(): void
+    {
+        $user = User::factory()->create();
+        [$organisation] = $this->createMembership($user, 'admin');
+        $candidate = $this->createCandidate($organisation, 'Coordinate', 'Candidate');
+        $url = "/api/v1/organisations/{$organisation->getKey()}/candidates/{$candidate->getKey()}";
+
+        $this->actingAs($user, 'web')->patchJson($url, ['latitude' => -37.8136])
+            ->assertUnprocessable()->assertJsonValidationErrors('longitude');
+        $this->patchJson($url, ['latitude' => -91, 'longitude' => 144.9631])
+            ->assertUnprocessable()->assertJsonValidationErrors('latitude');
+        $this->patchJson($url, ['latitude' => -37.8136, 'longitude' => 144.9631])
+            ->assertOk()
+            ->assertJsonPath('data.latitude', -37.8136)
+            ->assertJsonPath('data.longitude', 144.9631);
+        $this->patchJson($url, ['latitude' => null])
+            ->assertUnprocessable()->assertJsonValidationErrors('longitude');
+        $this->patchJson($url, ['latitude' => null, 'longitude' => null])
+            ->assertOk()->assertJsonPath('data.latitude', null)->assertJsonPath('data.longitude', null);
     }
 
     public function test_update_rejects_security_fields_and_cannot_move_a_candidate(): void

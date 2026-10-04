@@ -67,6 +67,9 @@ erDiagram
         string email
         string occupation
         string location
+        decimal latitude
+        decimal longitude
+        geography location_geography
         string availability
     }
     CANDIDATE_DOCUMENTS {
@@ -85,6 +88,9 @@ erDiagram
         string title
         string occupation
         string location
+        decimal latitude
+        decimal longitude
+        geography location_geography
         string employment_type
         string status
         timestamp opened_at
@@ -196,6 +202,9 @@ erDiagram
   keys. Candidate renewals are allowed, while duplicate Job requirements are
   rejected. Issue/expiry dates use `DATE`, with a CHECK for chronological order;
   time-dependent expiry classification remains application logic.
+- Candidate and Job latitude/longitude pairs are range-checked and drive stored
+  generated PostGIS geography points in SRID 4326. Candidate geography has a
+  GiST index for radius matching; derived match rankings are not persisted.
 
 See [database design](../database-design.md) for exact constraints, indexes and
 transaction behaviour.

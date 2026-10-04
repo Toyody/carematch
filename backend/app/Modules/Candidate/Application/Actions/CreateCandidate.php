@@ -29,6 +29,8 @@ final readonly class CreateCandidate
                 phone: $data->phone,
                 occupation: $data->occupation,
                 location: $data->location,
+                latitude: $data->latitude,
+                longitude: $data->longitude,
                 availability: $data->availability,
                 notes: $data->notes,
             ),

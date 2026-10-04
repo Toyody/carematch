@@ -15,6 +15,8 @@ final readonly class CandidateRecord
         public ?string $phone,
         public ?string $occupation,
         public ?string $location,
+        public ?float $latitude,
+        public ?float $longitude,
         public ?string $availability,
         public ?string $notes,
         public DateTimeImmutable $createdAt,

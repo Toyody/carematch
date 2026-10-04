@@ -31,6 +31,8 @@ final class UpdateCandidateRequest extends FormRequest
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'occupation' => ['sometimes', 'nullable', 'string', 'max:255'],
             'location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'latitude' => ['present_with:longitude', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['present_with:latitude', 'nullable', 'numeric', 'between:-180,180'],
             'availability' => ['sometimes', 'nullable', 'string', 'max:255'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'id' => ['prohibited'],
@@ -65,7 +67,7 @@ final class UpdateCandidateRequest extends FormRequest
     }
 
     /**
-     * @return array<string, string|null>
+     * @return array<string, string|float|null>
      */
     public function candidateChanges(): array
     {
@@ -77,7 +79,7 @@ final class UpdateCandidateRequest extends FormRequest
             }
 
             $value = $this->validated($field);
-            $changes[$field] = $value === null ? null : (string) $value;
+            $changes[$field] = $value === null ? null : (in_array($field, ['latitude', 'longitude'], true) ? (float) $value : (string) $value);
         }
 
         return $changes;
@@ -121,6 +123,8 @@ final class UpdateCandidateRequest extends FormRequest
             'phone',
             'occupation',
             'location',
+            'latitude',
+            'longitude',
             'availability',
             'notes',
         ];

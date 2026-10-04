@@ -16,14 +16,14 @@ final readonly class UpdateCandidate
     ) {}
 
     /**
-     * @param  array<string, string|null>  $changes
+     * @param  array<string, string|float|null>  $changes
      */
     public function handle(
         TenantContext $tenant,
         int $candidateId,
         array $changes,
     ): CandidateRecord {
-        if (array_key_exists('email', $changes) && $changes['email'] !== null) {
+        if (array_key_exists('email', $changes) && is_string($changes['email'])) {
             $changes['email'] = $this->emailNormalizer->normalize($changes['email']);
         }
 

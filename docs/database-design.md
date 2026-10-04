@@ -163,7 +163,7 @@ Candidate-owned credential records contain `organisation_id`, `candidate_id`, `q
 
 ### `job_qualification_requirements`
 
-Required-only Job qualifications contain `organisation_id`, `job_id`, `qualification_definition_id`, and timestamps. Composite foreign keys prevent cross-tenant Job/definition relationships. Unique `(organisation_id, job_id, qualification_definition_id)` prevents duplicate requirements. Weighted, preferred and scored requirements are deferred to Phase 7C.
+Required-only Job qualifications contain `organisation_id`, `job_id`, `qualification_definition_id`, and timestamps. Composite foreign keys prevent cross-tenant Job/definition relationships. Unique `(organisation_id, job_id, qualification_definition_id)` prevents duplicate requirements. Weighted, preferred and scored requirements remain intentionally absent; Phase 7C uses coverage states in a lexicographic ranking rather than requirement weights.
 
 ### `candidates`
 
@@ -179,6 +179,9 @@ Initial fields:
 - `phone`, nullable
 - `occupation`, nullable
 - `location`, nullable
+- `latitude numeric(8,6)`, nullable
+- `longitude numeric(9,6)`, nullable
+- generated `location_geography geography(Point,4326)`, nullable
 - `availability`, nullable
 - `notes`, nullable
 - `created_at`
@@ -189,12 +192,21 @@ Constraints:
 - non-cascading foreign key to `organisations`
 - unique `(organisation_id, id)` for composite tenant foreign keys
 - NOT NULL `organisation_id`, `first_name` and `last_name`
+- CHECK that latitude and longitude are both null or both present
+- CHECK latitude is between -90 and 90 and longitude between -180 and 180
 
 Phase 3A bounds first and last names at 100 characters, phone at 50, email and the remaining short profile fields at 255, and notes at 5,000 characters through the API. Candidate email is trimmed and lowercased before persistence but is not an Identity email and does not create or link an Identity user.
 
 Whether normalised candidate email is unique within an organisation remains a product decision. Do not add that constraint until duplicate handling is agreed.
 
 Candidate deletion, archival and soft deletion remain deferred until retention requirements are resolved. Phase 3A creates no `deleted_at` column.
+
+Latitude/longitude are the only editable coordinate source. PostgreSQL derives
+the stored geography point as longitude/latitude with SRID 4326, preventing two
+independently editable representations. Coordinates are approximate recruitment
+location data, not residential addresses. A GiST index on Candidate geography
+supports radius matching; no Job spatial index is justified because the target
+Job is first resolved by tenant and primary identifier.
 
 ### `candidate_documents`
 
@@ -249,6 +261,9 @@ Initial fields:
 - `title`
 - `occupation`, nullable
 - `location`, nullable
+- `latitude numeric(8,6)`, nullable
+- `longitude numeric(9,6)`, nullable
+- generated `location_geography geography(Point,4326)`, nullable
 - `employment_type`, nullable
 - `description`, nullable
 - `status`: `draft`, `open`, `closed` or `archived`
@@ -263,6 +278,8 @@ Constraints:
 - unique `(organisation_id, id)` for composite tenant foreign keys
 - CHECK for supported `status` values
 - CHECK that `closes_at` is null or not earlier than `opened_at`
+- CHECK that latitude and longitude are both null or both present
+- CHECK latitude is between -90 and 90 and longitude between -180 and 180
 
 Salary/rate representation and structured required skills remain unresolved and are excluded from the first schema migration.
 
@@ -381,6 +398,7 @@ Expected indexes:
 - `organisation_invitations(organisation_id, email)`
 - `candidates(organisation_id, created_at)`
 - `candidates(organisation_id, last_name, first_name)`
+- GiST `candidates(location_geography)`
 - `jobs(organisation_id, status, created_at)`
 - unique `applications(organisation_id, job_id, candidate_id)`
 - `applications(organisation_id, candidate_id)`
@@ -394,7 +412,13 @@ Expected indexes:
 - `audit_events(organisation_id, event_type, occurred_at, id)`
 - `audit_events(organisation_id, actor_user_id, occurred_at, id)`
 
-Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text, trigram and PostGIS indexes are deferred until measured requirements justify them.
+Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text and trigram indexes remain deferred until measured requirements justify them. Phase 7C adds only the Candidate geography GiST index used by `ST_DWithin` radius queries.
+
+PostGIS is enabled by migration and deliberately retained on rollback because it
+is a shared database capability. Candidate and Job geography columns are stored
+generated values; rolling the migration back removes the dependent columns and
+Candidate index but does not casually remove the extension. Matching results are
+derived on demand and no stale `candidate_job_matches` table is persisted.
 
 The Phase 3A Candidate list uses the two Candidate indexes above for tenant/date and tenant/name access patterns. Occupation filtering is implemented, but an additional occupation index is deferred until representative production cardinality and query plans demonstrate a benefit. Simple substring `ILIKE` search remains intentionally unindexed for the MVP dataset; trigram and full-text indexes are not introduced speculatively.
 

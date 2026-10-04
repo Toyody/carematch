@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Toyody/carematch/actions/workflows/ci.yml/badge.svg)](https://github.com/Toyody/carematch/actions/workflows/ci.yml)
 
-CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It demonstrates tenant-safe candidate management, job requisitions, recruitment pipelines, private candidate documents, role-based access control, an append-only business audit trail, and a focused operational dashboard in a modular Laravel and Next.js application.
+CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It demonstrates tenant-safe candidate management, job requisitions, recruitment pipelines, private candidate documents, deterministic explainable matching, role-based access control, an append-only business audit trail, and a focused operational dashboard in a modular Laravel and Next.js application.
 
 ![CareMatch organisation dashboard](docs/screenshots/organisation-dashboard.jpg)
 
@@ -23,6 +23,7 @@ CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It dem
 - Tenant-scoped candidate records and private document handling.
 - Job creation and lifecycle management.
 - Applications with pipeline transitions and auditable status history.
+- Explainable Job-to-Candidate ranking using qualification coverage, exact occupation compatibility and PostGIS distance.
 - An Admin-only, tenant-scoped audit trail for meaningful business mutations.
 - An organisation dashboard with status breakdowns and recent activity.
 
@@ -38,7 +39,7 @@ All displayed names, email addresses, organisations, locations, notes, and job d
 
 ## Architecture
 
-The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, and `Audit`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
+The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, `Matching`, and `Audit`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
 
 ```text
 Browser / Next.js SPA
@@ -50,9 +51,10 @@ Laravel REST API
   ├── Candidate
   ├── Recruitment
   ├── Compliance
+  ├── Matching
   └── Audit
         │
-        ├── PostgreSQL
+        ├── PostgreSQL 18 + PostGIS 3.6
         └── Private document storage
 ```
 
@@ -78,10 +80,14 @@ Candidate documents use cryptographically random storage keys on a private disk.
 
 The dashboard uses fixed aggregate and recent-activity queries instead of loading entire collections. Recent application activity is eagerly loaded with the candidate and job data required by the response, avoiding an N+1 query pattern. A representative development `EXPLAIN ANALYZE` improved the measured recent-activity query from about 35.5 ms to 0.09 ms after one query-shaped index was added; this is evidence from local test data, not a production SLA.
 
+### Deterministic matching
+
+The Job matching page ranks only Candidates from the resolved Organisation. It uses a documented lexicographic order: qualification coverage, trimmed case-insensitive exact occupation compatibility, known PostGIS distance in kilometres, then Candidate ID. It exposes each factor instead of an opaque score, treats missing distance as unavailable rather than zero, and never uses notes, availability, document contents, personal identifiers, free-text descriptions, AI or external geocoding. Matching is read-only decision support; human users remain responsible for recruitment decisions.
+
 ## Technology
 
 - PHP 8.5, Laravel 13, Laravel Sanctum
-- PostgreSQL 18
+- PostgreSQL 18 with PostGIS 3.6
 - Node.js 24, Next.js 16, React 19, TypeScript
 - Docker Compose
 - PHPUnit, PHPStan level 8, Laravel Pint
@@ -121,7 +127,7 @@ CARE_MATCH_DEMO_PASSWORD='choose-a-local-password-of-12-plus-characters' make de
 
 The default account is `demo.admin@example.test`. You can override it with `CARE_MATCH_DEMO_EMAIL`, provided it remains under `example.test`. Running the command again reuses the same deterministic demo records rather than duplicating them.
 
-The seeded organisation contains realistic but fictional candidates, jobs, one application in each pipeline status, and coherent transition histories. Never use real personal information in demo data.
+The seeded organisation contains realistic but fictional candidates, jobs, locality-level matching coordinates, varied qualification coverage, one application in each pipeline status, and coherent transition histories. Never use real personal information in demo data.
 
 Phase 6A adds a separate, explicitly guarded production public-demo provisioning command. It requires public-demo mode, an `@example.test` identity, a deployment-injected password and an operator confirmation flag. It does not run at startup, truncate data or provide an automated destructive reset. See the deployment runbook for the exact procedure.
 
@@ -175,4 +181,4 @@ compose.e2e.yaml    Isolated browser-test stack
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 5, Phase 7A Compliance & Credentials, and Phase 7B Audit Trail is implemented. Audit events are tenant-scoped, privacy-limited and append-only; they complement rather than replace recruitment status history. Phase 6A repository-side production readiness is implemented, but no AWS deployment is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.
+The local and CI-tested portfolio scope through Phase 5 and Phase 7A–7C is implemented. Matching is deterministic, tenant-scoped and PostGIS-backed; Audit events remain privacy-limited and append-only. Phase 6A repository-side production readiness is implemented, but no AWS deployment or RDS/PostGIS compatibility verification is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.

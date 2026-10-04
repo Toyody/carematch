@@ -2,13 +2,14 @@ name: carematch-production-validation
 
 services:
   postgres:
-    image: postgres:18.6-bookworm
+    image: postgis/postgis:18-3.6
+    platform: linux/amd64
     environment:
       POSTGRES_DB: carematch_production_validation
       POSTGRES_USER: carematch
       POSTGRES_PASSWORD: production_validation_only
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U carematch -d carematch_production_validation"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U carematch -d carematch_production_validation"]
       interval: 3s
       timeout: 3s
       retries: 20

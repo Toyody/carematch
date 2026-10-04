@@ -257,8 +257,8 @@ Exit criteria:
 
 ### Phase 7C — Deterministic Matching & PostGIS
 
-- [ ] Candidate matching engine
-- [ ] PostGIS distance matching
+- [x] Candidate matching engine
+- [x] PostGIS distance matching
 
 ### Phase 7D — Advanced Analytics
 

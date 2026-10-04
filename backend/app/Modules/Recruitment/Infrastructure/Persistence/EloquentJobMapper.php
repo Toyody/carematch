@@ -23,6 +23,8 @@ final class EloquentJobMapper
             title: (string) $job->getAttribute('title'),
             occupation: self::nullableString($job, 'occupation'),
             location: self::nullableString($job, 'location'),
+            latitude: self::nullableFloat($job, 'latitude'),
+            longitude: self::nullableFloat($job, 'longitude'),
             employmentType: self::nullableString($job, 'employment_type'),
             description: self::nullableString($job, 'description'),
             status: $status,
@@ -31,6 +33,13 @@ final class EloquentJobMapper
             createdAt: self::date($job, 'created_at'),
             updatedAt: self::date($job, 'updated_at'),
         );
+    }
+
+    private static function nullableFloat(Job $job, string $attribute): ?float
+    {
+        $value = $job->getAttribute($attribute);
+
+        return $value === null ? null : (float) $value;
     }
 
     private static function nullableString(Job $job, string $attribute): ?string

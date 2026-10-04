@@ -257,6 +257,34 @@ final class JobManagementTest extends TestCase
         $this->assertDatabaseHas('jobs', ['id' => $job->getKey(), 'closes_at' => null]);
     }
 
+    public function test_job_coordinates_require_a_valid_pair(): void
+    {
+        $user = User::factory()->create();
+        [$organisation] = $this->createMembership($user, 'admin');
+        $job = $this->createJob($organisation);
+        $url = "/api/v1/organisations/{$organisation->getKey()}/jobs/{$job->getKey()}";
+
+        $this->actingAs($user, 'web')->patchJson($url, ['longitude' => 144.9631])
+            ->assertUnprocessable()->assertJsonValidationErrors('latitude');
+        $this->patchJson($url, ['latitude' => -37.8136, 'longitude' => 181])
+            ->assertUnprocessable()->assertJsonValidationErrors('longitude');
+        $this->patchJson($url, ['latitude' => -37.8136, 'longitude' => 144.9631])
+            ->assertOk()
+            ->assertJsonPath('data.latitude', -37.8136)
+            ->assertJsonPath('data.longitude', 144.9631);
+        $metadata = (string) DB::table('audit_events')
+            ->where('subject_type', 'job')->where('subject_id', $job->getKey())
+            ->where('event_type', 'job.updated')->latest('id')->value('metadata');
+        self::assertStringContainsString('latitude', $metadata);
+        self::assertStringContainsString('longitude', $metadata);
+        self::assertStringNotContainsString('-37.8136', $metadata);
+        self::assertStringNotContainsString('144.9631', $metadata);
+        $this->patchJson($url, ['longitude' => null])
+            ->assertUnprocessable()->assertJsonValidationErrors('latitude');
+        $this->patchJson($url, ['latitude' => null, 'longitude' => null])
+            ->assertOk()->assertJsonPath('data.latitude', null)->assertJsonPath('data.longitude', null);
+    }
+
     public function test_hiring_manager_cannot_write_or_transition_and_data_is_unchanged(): void
     {
         $user = User::factory()->create();

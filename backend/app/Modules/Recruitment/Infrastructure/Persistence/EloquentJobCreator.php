@@ -20,6 +20,7 @@ final readonly class EloquentJobCreator implements JobCreator
             $job = Job::query()->create([
                 'organisation_id' => $organisationId, 'title' => $data->title,
                 'occupation' => $data->occupation, 'location' => $data->location,
+                'latitude' => $data->latitude, 'longitude' => $data->longitude,
                 'employment_type' => $data->employmentType, 'description' => $data->description,
                 'status' => JobStatus::Draft, 'opened_at' => $data->openedAt, 'closes_at' => $data->closesAt,
             ]);

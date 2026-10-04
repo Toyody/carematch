@@ -102,9 +102,11 @@ final class AuditTrailTest extends TestCase
 
         $this->actingAs($admin, 'web')->patchJson("{$base}/{$candidateId}", [
             'occupation' => 'Registered Nurse', 'notes' => 'private changed note',
+            'latitude' => -37.8136, 'longitude' => 144.9631,
         ])->assertOk();
         $this->actingAs($admin, 'web')->patchJson("{$base}/{$candidateId}", [
             'occupation' => 'Registered Nurse', 'notes' => 'private changed note',
+            'latitude' => -37.8136, 'longitude' => 144.9631,
         ])->assertOk();
         $this->actingAs($admin, 'web')->postJson($base, [
             'first_name' => 'Invalid without a last name',
@@ -117,8 +119,10 @@ final class AuditTrailTest extends TestCase
         self::assertSame((int) $organisation->getKey(), (int) $events[1]->organisation_id);
         self::assertSame((int) $admin->getKey(), (int) $events[1]->actor_user_id);
         $metadata = json_decode((string) $events[1]->metadata, true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame(['occupation', 'notes'], $metadata['changed_fields']);
+        self::assertSame(['occupation', 'notes', 'latitude', 'longitude'], $metadata['changed_fields']);
         self::assertStringNotContainsString('private changed note', (string) $events[1]->metadata);
+        self::assertStringNotContainsString('-37.8136', (string) $events[1]->metadata);
+        self::assertStringNotContainsString('144.9631', (string) $events[1]->metadata);
     }
 
     public function test_audit_write_failure_rolls_back_the_business_mutation(): void

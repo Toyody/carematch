@@ -9,7 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin JobRecord */
 final class JobResource extends JsonResource
 {
-    /** @return array<string, int|string|null> */
+    /** @return array<string, float|int|string|null> */
     public function toArray(Request $request): array
     {
         /** @var JobRecord $job */
@@ -20,6 +20,8 @@ final class JobResource extends JsonResource
             'title' => $job->title,
             'occupation' => $job->occupation,
             'location' => $job->location,
+            'latitude' => $job->latitude,
+            'longitude' => $job->longitude,
             'employment_type' => $job->employmentType,
             'description' => $job->description,
             'status' => $job->status->value,
