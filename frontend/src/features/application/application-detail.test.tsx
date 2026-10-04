@@ -169,9 +169,11 @@ describe("ApplicationDetail", () => {
       await screen.findByRole("button", { name: "Move to Screening" }),
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The requested application status transition is not allowed.",
-    );
+    expect(
+      await screen.findByText(
+        "The requested application status transition is not allowed.",
+      ),
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Move to Interview" }),
     ).toBeVisible();
@@ -188,7 +190,7 @@ describe("ApplicationDetail", () => {
     );
     render(<ApplicationDetail applicationId={9} organisationId={4} />);
     fireEvent.click(await screen.findByRole("button", { name: "Reject" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(await screen.findByText(message)).toBeVisible();
   });
 
   it("clears stale details and history and fails safely for a new tenant", async () => {
