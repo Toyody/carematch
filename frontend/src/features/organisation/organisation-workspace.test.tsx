@@ -80,6 +80,9 @@ describe("OrganisationWorkspace", () => {
     expect(
       screen.getByRole("link", { name: "Manage applications" }),
     ).toHaveAttribute("href", `/organisations/${northside.id}/applications`);
+    expect(
+      screen.getByRole("link", { name: "Recruitment analytics" }),
+    ).toHaveAttribute("href", `/organisations/${northside.id}/analytics`);
     expect(screen.getByRole("link", { name: "Audit Trail" })).toHaveAttribute(
       "href",
       `/organisations/${northside.id}/audit-events`,

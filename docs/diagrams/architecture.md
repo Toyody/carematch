@@ -22,6 +22,7 @@ flowchart TB
             matching[Matching ranking and spatial read model]
             audit[Audit trail]
             dashboard[Dashboard read model]
+            analytics[Analytics cohort and reporting read model]
         end
     end
 
@@ -42,6 +43,7 @@ flowchart TB
     tenant --> matching
     tenant --> audit
     tenant --> dashboard
+    tenant --> analytics
 
     identity --> postgres
     organisation --> postgres
@@ -51,6 +53,7 @@ flowchart TB
     matching -->|tenant-scoped ranking, ST_Distance and ST_DWithin| postgres
     audit -->|append-only events and paginated reads| postgres
     dashboard -->|bounded tenant-scoped aggregation| postgres
+    analytics -->|UTC cohort, funnel, daily series and medians| postgres
     candidate -->|authorised upload and download| privateStorage
 
     ci --> quality
@@ -75,6 +78,9 @@ flowchart TB
   authorised downloads and never returns the random internal storage key.
 - Dashboard is a read-only cross-module projection. It owns no Candidate or
   Recruitment records and uses four fixed tenant-scoped queries.
+- Analytics is a separate read-only projection over authoritative Candidate,
+  Application, Job and status-history records. It uses four fixed tenant-scoped
+  PostgreSQL queries and persists no report or aggregate cache.
 - Compliance owns the shared qualification catalogue and deterministic temporal
   evaluator. Candidate credentials remain in Candidate and Job requirements in
   Recruitment; tenant-safe Infrastructure read models provide bounded inputs to

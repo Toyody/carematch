@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.12.0
+  version: 0.13.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -24,6 +24,10 @@ info:
     Phase 7C adds deterministic, explainable Job-to-Candidate matching using
     recorded qualification coverage, exact normalised occupation compatibility,
     and optional PostGIS geography distance. Matching is decision support only.
+    Phase 7D adds tenant-scoped operational recruitment analytics over explicit
+    UTC Application cohorts and authoritative status history. It does not expose
+    Candidate identities, employee-performance metrics, demographic inference,
+    predictive analytics, or AI output.
 
     Deployments configured as the public portfolio demo return `403` for
     registration, Organisation creation, password recovery, invitation creation,
@@ -393,6 +397,49 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "404":
           $ref: "#/components/responses/TenantNotFound"
+  /organisations/{organisation}/analytics:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+    get:
+      operationId: getOrganisationAnalytics
+      summary: Get tenant recruitment analytics
+      description: |
+        Returns a read-only operational report for Applications whose
+        `applied_at` timestamp falls within the selected UTC date period. Later
+        authoritative status-history transitions determine reached stages and
+        outcomes for that cohort. Current statuses remain a separate projection.
+
+        If omitted, the period is the last 90 UTC calendar days including today.
+        `from` and `to` must be supplied together, are inclusive calendar dates,
+        and may cover at most 365 days. Admin, Recruiter, and Hiring Manager may
+        view. New Jobs means Job records created in the period; it does not claim
+        to represent Job-open transition history.
+      tags:
+        - Analytics
+      security:
+        - StatefulSession: []
+      parameters:
+        - name: from
+          in: query
+          description: Inclusive UTC cohort start date. Must be supplied together with `to`.
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          description: Inclusive UTC cohort end date. Must be supplied together with `from`; the inclusive range is limited to 365 days.
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Tenant-scoped operational recruitment analytics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/TenantNotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
   /organisations/{organisation}/candidates:
     parameters:
       - $ref: "#/components/parameters/OrganisationId"
@@ -2780,6 +2827,102 @@ components:
       required: [data]
       properties:
         data: { $ref: "#/components/schemas/Dashboard" }
+    AnalyticsPeriod:
+      type: object
+      additionalProperties: false
+      required: [from, to, timezone]
+      properties:
+        from: { type: string, format: date, description: Inclusive UTC calendar date. }
+        to: { type: string, format: date, description: Inclusive UTC calendar date. }
+        timezone: { type: string, const: UTC }
+    AnalyticsSummary:
+      type: object
+      additionalProperties: false
+      required: [new_candidates, new_jobs, applications, hired, rejected]
+      properties:
+        new_candidates: { type: integer, minimum: 0, description: Candidate records created during the UTC period. }
+        new_jobs: { type: integer, minimum: 0, description: Job records created during the UTC period; not a count of open transitions. }
+        applications: { type: integer, minimum: 0, description: Applications whose applied_at falls within the period. }
+        hired: { type: integer, minimum: 0, description: Cohort Applications that reached Hired in authoritative history. }
+        rejected: { type: integer, minimum: 0, description: Cohort Applications that reached Rejected in authoritative history. }
+    AnalyticsFunnel:
+      type: object
+      additionalProperties: false
+      required: [applied, screening, interview, offer, hired]
+      description: Reached-stage counts for the selected Application cohort. Rejected is deliberately separate.
+      properties:
+        applied: { type: integer, minimum: 0 }
+        screening: { type: integer, minimum: 0 }
+        interview: { type: integer, minimum: 0 }
+        offer: { type: integer, minimum: 0 }
+        hired: { type: integer, minimum: 0 }
+    AnalyticsSeriesPoint:
+      type: object
+      additionalProperties: false
+      required: [date, applications]
+      properties:
+        date: { type: string, format: date, description: UTC calendar date. }
+        applications: { type: integer, minimum: 0 }
+    AnalyticsTimeToStageMetric:
+      type: object
+      additionalProperties: false
+      required: [median_days, sample_size]
+      properties:
+        median_days:
+          type: [number, "null"]
+          format: double
+          minimum: 0
+          description: Median elapsed days from applied_at to the first stage transition, or null when no valid sample exists.
+        sample_size: { type: integer, minimum: 0 }
+    AnalyticsTimeToStage:
+      type: object
+      additionalProperties: false
+      required: [interview, hired]
+      properties:
+        interview: { $ref: "#/components/schemas/AnalyticsTimeToStageMetric" }
+        hired: { $ref: "#/components/schemas/AnalyticsTimeToStageMetric" }
+    AnalyticsJob:
+      type: object
+      additionalProperties: false
+      required: [job_id, job_title, applications, interview, offer, hired, rejected]
+      properties:
+        job_id: { type: integer, format: int64, minimum: 1 }
+        job_title: { type: string, minLength: 1 }
+        applications: { type: integer, minimum: 0 }
+        interview: { type: integer, minimum: 0, description: Cohort Applications that reached Interview. }
+        offer: { type: integer, minimum: 0, description: Cohort Applications that reached Offer. }
+        hired: { type: integer, minimum: 0, description: Cohort Applications that reached Hired. }
+        rejected: { type: integer, minimum: 0, description: Cohort Applications that reached Rejected. }
+    Analytics:
+      type: object
+      additionalProperties: false
+      required: [period, summary, funnel, current_statuses, application_series, time_to_stage, jobs]
+      properties:
+        period: { $ref: "#/components/schemas/AnalyticsPeriod" }
+        summary: { $ref: "#/components/schemas/AnalyticsSummary" }
+        funnel: { $ref: "#/components/schemas/AnalyticsFunnel" }
+        current_statuses:
+          allOf:
+            - $ref: "#/components/schemas/DashboardApplicationCounts"
+          description: Current status distribution for the selected Application cohort, including zero groups.
+        application_series:
+          type: array
+          minItems: 1
+          maxItems: 365
+          description: One zero-filled UTC day for every date in the selected period.
+          items: { $ref: "#/components/schemas/AnalyticsSeriesPoint" }
+        time_to_stage: { $ref: "#/components/schemas/AnalyticsTimeToStage" }
+        jobs:
+          type: array
+          maxItems: 10
+          description: Jobs referenced by cohort Applications, ordered by Application count descending, Hired count descending, then Job ID ascending.
+          items: { $ref: "#/components/schemas/AnalyticsJob" }
+    AnalyticsResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/Analytics" }
     OrganisationInvitation:
       type: object
       additionalProperties: false
@@ -3204,6 +3347,8 @@ tags:
     description: Tenant-owned Job profile and explicit lifecycle operations.
   - name: Dashboard
     description: Read-only tenant metrics and recent recruitment activity.
+  - name: Analytics
+    description: Read-only tenant operational recruitment analytics over explicit UTC Application cohorts.
   - name: Compliance
     description: Organisation-defined qualifications, expiry and deterministic Job-requirement coverage.
   - name: Audit

@@ -281,6 +281,78 @@ h1 {
   font-size: 0.875rem;
 }
 
+.analytics-card {
+  width: min(100%, 72rem);
+}
+
+.analytics-period {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+}
+
+.analytics-metrics,
+.analytics-statuses {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.analytics-metrics > div,
+.analytics-statuses > div,
+.analytics-funnel li {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.analytics-metrics dt,
+.analytics-statuses dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.analytics-metrics dd,
+.analytics-statuses dd {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.analytics-statuses {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.analytics-funnel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.analytics-funnel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.analytics-table-scroll {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.analytics-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table-scroll th,
+.analytics-table-scroll td {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
 .candidate-card {
   width: min(100%, 56rem);
 }
@@ -505,6 +577,13 @@ h1 {
   .dashboard-metrics,
   .dashboard-statuses,
   .dashboard-activity li {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-period,
+  .analytics-metrics,
+  .analytics-statuses,
+  .analytics-funnel {
     grid-template-columns: 1fr;
   }
 

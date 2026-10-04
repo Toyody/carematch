@@ -166,6 +166,9 @@ export function OrganisationWorkspace({
               <Link href={`/organisations/${organisationId}/applications`}>
                 Manage applications
               </Link>
+              <Link href={`/organisations/${organisationId}/analytics`}>
+                Recruitment analytics
+              </Link>
               <Link href={`/organisations/${organisationId}/qualifications`}>
                 Qualifications and expiries
               </Link>

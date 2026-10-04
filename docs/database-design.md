@@ -414,6 +414,24 @@ Expected indexes:
 
 Indexes must be checked against generated SQL and actual list/dashboard queries. Full-text and trigram indexes remain deferred until measured requirements justify them. Phase 7C adds only the Candidate geography GiST index used by `ST_DWithin` radius queries.
 
+Phase 7D adds no table, materialized view, cache or index. Analytics derives a
+bounded UTC `applications.applied_at` cohort using the existing
+`(organisation_id, applied_at, id)` index, then joins immutable history through
+`(organisation_id, application_id, created_at)`. Candidate creation counts reuse
+`(organisation_id, created_at)`. Job creation counts are intentionally defined by
+`jobs.created_at`; the existing tenant-leading Job index and current portfolio
+scale are sufficient, so no speculative `opened_at` or analytics-only index is
+added. Reports are recomputed from authoritative records.
+
+Representative rollback-only `EXPLAIN ANALYZE` used 20,000 synthetic Applications,
+100 Jobs and 40,000 status-history rows. With the selected period covering the
+whole synthetic tenant, PostgreSQL correctly preferred sequential scans plus hash
+aggregation for cohort/funnel (about 59 ms), time-to-stage (about 74 ms) and Job
+aggregation (about 23 ms). The 92-day zero-filled series used the existing
+`applications(organisation_id, applied_at, id)` index for each bounded day range
+(about 32 ms). These local figures justify adding no Phase 7D index and are not a
+production SLA; production cardinality and selectivity must be measured again.
+
 PostGIS is enabled by migration and deliberately retained on rollback because it
 is a shared database capability. Candidate and Job geography columns are stored
 generated values; rolling the migration back removes the dependent columns and
