@@ -15,6 +15,7 @@ CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It dem
 - Private candidate-document storage and authorised download endpoints.
 - A typed Next.js client, accessible responsive UI, OpenAPI contract, and layered automated tests including a critical Playwright flow.
 - A real SQS-backed Compliance digest worker, Redis coordination, DLQ integration tests, and repository-side Terraform/CloudWatch definitions.
+- Explicit AI-assisted CV extraction with human review, plus explanations grounded in the existing deterministic match factors.
 
 ## Core features
 
@@ -42,7 +43,7 @@ All displayed names, email addresses, organisations, locations, notes, and job d
 
 ## Architecture
 
-The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, `Matching`, `Audit`, `Dashboard`, and `Analytics`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
+The backend is a Laravel modular monolith. Business code is organised module-first (`Identity`, `Organisation`, `Candidate`, `Recruitment`, `Compliance`, `Matching`, `AI`, `Audit`, `Dashboard`, and `Analytics`) and then by `Domain`, `Application`, `Infrastructure`, and `Interfaces` where those layers provide concrete value. The Next.js frontend communicates with the REST API through a small typed fetch client.
 
 ```text
 Browser / Next.js SPA
@@ -181,6 +182,7 @@ make test        # Backend and frontend tests
 make check       # Full validation suite
 make test-e2e    # Isolated Playwright stack and critical flow
 make test-async  # Redis + SQS producer/worker/retry/DLQ integration
+make test-ai-provider # Explicit, guarded synthetic OpenAI smoke (never part of CI)
 make test-terraform # Terraform fmt/init-without-backend/validate
 make test-performance # Disposable synthetic k6 smoke
 make demo-seed   # Seed deterministic synthetic portfolio data
@@ -212,9 +214,20 @@ performance/        Synthetic k6 smoke workload
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 8 is implemented. Phase 8
+The local and CI-tested portfolio scope through Phase 9 is implemented. Phase 8
 means repository-side readiness: no Terraform was applied and no live AWS
 resources or CloudWatch alarms were verified. HTTPS/domain configuration, live
 managed infrastructure, deployed secrets, RDS/PostGIS compatibility, alarm
-delivery, and backup/restore drills remain Phase 6B/6C work. Phase 9 remains
-unimplemented.
+delivery, backup/restore drills, live AI provider connectivity, and the live AI
+worker remain Phase 6B/6C work. AI is disabled by default and in the public demo.
+
+Phase 9 uses the OpenAI Responses API behind a focused provider contract. A user
+explicitly requests parsing of an existing private PDF or DOCX; only a durable
+internal request ID enters the AI queue. The resulting six-field draft never
+updates the Candidate until an Admin or Recruiter reviews, edits and selects
+fields to apply. Match explanations receive only bounded deterministic factors,
+do not create a score, and cannot alter rank. External processing transmits the
+selected document to the configured provider; no zero-retention or regulatory
+compliance claim is made. Real Candidate documents remain unsuitable for the
+portfolio deployment until malware scanning, retention and provider controls are
+selected and verified.

@@ -20,6 +20,7 @@ interface ErrorPayload {
 
 interface RequestOptions {
   body?: unknown;
+  headers?: Record<string, string>;
   method?: "DELETE" | "GET" | "PATCH" | "POST";
   withCsrf?: boolean;
 }
@@ -27,6 +28,7 @@ interface RequestOptions {
 interface RawRequestOptions {
   body?: BodyInit;
   contentType?: string;
+  headers?: Record<string, string>;
   method?: "DELETE" | "GET" | "PATCH" | "POST";
   withCsrf?: boolean;
 }
@@ -45,11 +47,12 @@ export class ApiError extends Error {
 
 export async function apiRequest<T>(
   path: string,
-  { body, method = "GET", withCsrf = false }: RequestOptions = {},
+  { body, headers, method = "GET", withCsrf = false }: RequestOptions = {},
 ): Promise<T> {
   const response = await performApiRequest(path, {
     body: body === undefined ? undefined : JSON.stringify(body),
     contentType: body === undefined ? undefined : "application/json",
+    headers,
     method,
     withCsrf,
   });
@@ -98,11 +101,16 @@ async function performApiRequest(
   {
     body,
     contentType,
+    headers: additionalHeaders,
     method = "GET",
     withCsrf = false,
   }: RawRequestOptions = {},
 ): Promise<Response> {
   const headers = new Headers({ Accept: "application/json" });
+
+  for (const [name, value] of Object.entries(additionalHeaders ?? {})) {
+    headers.set(name, value);
+  }
 
   if (withCsrf) {
     headers.set("X-XSRF-TOKEN", await initialiseCsrf());
@@ -213,7 +221,7 @@ function publicErrorMessage(
       : `Too many attempts. Please try again in ${retryAfter} seconds.`;
   }
 
-  if ([401, 409, 422].includes(status) && backendMessage) {
+  if ([401, 403, 409, 422, 503].includes(status) && backendMessage) {
     return backendMessage;
   }
 

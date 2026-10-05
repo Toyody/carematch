@@ -160,9 +160,17 @@ export function CandidateDetail({
         )}
 
         <CandidateDocuments
+          candidate={candidate}
           candidateId={candidateId}
           key={resultKey}
           mayManage={mayWrite}
+          onCandidateUpdated={(updatedCandidate) =>
+            setResult((current) =>
+              current === null
+                ? current
+                : { ...current, candidate: updatedCandidate },
+            )
+          }
           organisationId={organisationId}
         />
         <CandidateQualifications

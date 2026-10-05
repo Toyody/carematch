@@ -56,6 +56,10 @@ services:
       MAIL_MAILER: array
       CANDIDATE_DOCUMENTS_DISK: candidate_documents
       CARE_MATCH_PUBLIC_DEMO: "true"
+      CARE_MATCH_AI_ENABLED: "false"
+      AI_PROVIDER: openai
+      AI_MODEL: ""
+      AI_QUEUE: ai
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Ai\Infrastructure\Providers\AiServiceProvider;
 use App\Modules\Analytics\Infrastructure\Providers\AnalyticsServiceProvider;
 use App\Modules\Audit\Infrastructure\Providers\AuditServiceProvider;
 use App\Modules\Candidate\Infrastructure\Providers\CandidateServiceProvider;
@@ -13,6 +14,7 @@ use App\Providers\AppServiceProvider;
 
 return [
     AppServiceProvider::class,
+    AiServiceProvider::class,
     AnalyticsServiceProvider::class,
     AuditServiceProvider::class,
     IdentityServiceProvider::class,

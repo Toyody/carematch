@@ -32,6 +32,10 @@ services:
       SQS_ENDPOINT: http://elasticmq:9324
       SQS_PREFIX: http://elasticmq:9324/000000000000
       SQS_QUEUE: compliance
+      AI_QUEUE: ai
+      CARE_MATCH_AI_ENABLED: "true"
+      AI_PROVIDER: fake
+      AI_MODEL: deterministic-fake-v1
     depends_on:
       elasticmq:
         condition: service_healthy
@@ -73,6 +77,48 @@ services:
       SQS_ENDPOINT: http://elasticmq:9324
       SQS_PREFIX: http://elasticmq:9324/000000000000
       SQS_QUEUE: compliance
+
+  ai-worker:
+    profiles: [async]
+    build:
+      context: ./backend
+    working_dir: /app
+    command:
+      [
+        "php",
+        "artisan",
+        "queue:work",
+        "sqs",
+        "--queue=ai",
+        "--tries=0",
+        "--timeout=120",
+        "--sleep=1",
+        "--max-time=3600",
+        "--memory=256",
+      ]
+    environment:
+      APP_ENV: local
+      APP_KEY: ${ASYNC_INTEGRATION_APP_KEY:?ASYNC_INTEGRATION_APP_KEY is required}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_async
+      DB_USERNAME: carematch
+      DB_PASSWORD: async_integration_only
+      CACHE_STORE: redis
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: sqs
+      QUEUE_FAILED_DRIVER: "null"
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_DEFAULT_REGION: ap-southeast-2
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_PREFIX: http://elasticmq:9324/000000000000
+      SQS_QUEUE: ai
+      AI_QUEUE: ai
+      CARE_MATCH_AI_ENABLED: "true"
+      AI_PROVIDER: fake
+      AI_MODEL: deterministic-fake-v1
     volumes:
       - ./backend:/app
       - backend_vendor:/app/vendor

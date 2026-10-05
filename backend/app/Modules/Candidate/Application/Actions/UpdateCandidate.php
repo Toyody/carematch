@@ -7,6 +7,7 @@ use App\Modules\Candidate\Application\Data\CandidateRecord;
 use App\Modules\Candidate\Application\Exceptions\CandidateNotFound;
 use App\Modules\Identity\Application\Contracts\CanonicalEmailNormalizer;
 use App\Modules\Organisation\Application\Data\TenantContext;
+use DateTimeImmutable;
 
 final readonly class UpdateCandidate
 {
@@ -22,6 +23,8 @@ final readonly class UpdateCandidate
         TenantContext $tenant,
         int $candidateId,
         array $changes,
+        ?DateTimeImmutable $expectedUpdatedAt = null,
+        ?string $expectedFingerprint = null,
     ): CandidateRecord {
         if (array_key_exists('email', $changes) && is_string($changes['email'])) {
             $changes['email'] = $this->emailNormalizer->normalize($changes['email']);
@@ -32,6 +35,8 @@ final readonly class UpdateCandidate
             $tenant->userId,
             $candidateId,
             $changes,
+            $expectedUpdatedAt,
+            $expectedFingerprint,
         ) ?? throw new CandidateNotFound;
     }
 }

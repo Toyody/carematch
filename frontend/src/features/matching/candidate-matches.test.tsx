@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "@/features/identity/auth-context";
 import { getJob } from "@/features/job/api";
+import { getOrganisation } from "@/features/organisation/api";
 import { ApiError } from "@/lib/api/client";
 import { listCandidateMatches, type CandidateMatchPage } from "./api";
 import { CandidateMatches } from "./candidate-matches";
@@ -14,6 +15,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/features/identity/auth-context", () => ({ useAuth: vi.fn() }));
 vi.mock("@/features/job/api", () => ({ getJob: vi.fn() }));
+vi.mock("@/features/organisation/api", () => ({ getOrganisation: vi.fn() }));
 vi.mock("./api", () => ({ listCandidateMatches: vi.fn() }));
 
 const page = (distance: number | null = 2.4): CandidateMatchPage => ({
@@ -82,6 +84,12 @@ describe("CandidateMatches", () => {
       status: "open",
       title: "Acute care nurse",
       updated_at: "",
+    });
+    vi.mocked(getOrganisation).mockResolvedValue({
+      created_at: "",
+      id: 4,
+      membership: { role: "admin" },
+      name: "Synthetic tenant",
     });
     vi.mocked(listCandidateMatches).mockResolvedValue(page());
   });

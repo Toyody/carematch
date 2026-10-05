@@ -392,6 +392,35 @@ non-negative counts and coherent sent/failed state shapes. Indexes support
 tenant-scoped reads and operational status inspection. No Candidate identity,
 recipient email, credential details or message body is persisted for delivery.
 
+### `ai_cv_extractions`
+
+This tenant-scoped operation stores the Candidate and immutable source-document
+ID, requesting membership, optional applying membership, SHA-256 idempotency and
+request fingerprints, lifecycle status, provider/model and prompt/schema
+versions, a validated six-field JSONB draft, Candidate version/fingerprint, safe
+failure code, optional provider request ID and lifecycle timestamps. It never
+stores document bytes, raw CV text, provider prompts/responses or API keys.
+
+`UNIQUE (organisation_id, requested_by_user_id, idempotency_key_hash)` is the
+durable cost/idempotency boundary. Composite foreign keys protect Candidate and
+membership ownership. The source document ID deliberately has no foreign key:
+deleting the private source remains possible without deleting or reattaching the
+review record, while request creation and worker loading both verify the exact
+tenant/Candidate/document tuple. A deleted source causes safe processing failure;
+an already validated draft retains its provenance ID and can never attach to a
+replacement file.
+
+### `ai_match_explanations`
+
+This tenant-scoped presentation record references the exact Job, Candidate and
+requesting membership and stores one bounded summary/factor JSON result plus
+provider/model/prompt/schema provenance. `UNIQUE (organisation_id, job_id,
+candidate_id, source_fingerprint)` reuses the same current facts and prevents a
+provider-cost loop. Composite tenant foreign keys prevent cross-Organisation
+links. No Candidate PII, document content, numeric AI score or ranking is stored.
+The source fingerprint is recomputed from the precise deterministic factors on
+read; changed facts make the explanation stale rather than mutating Matching.
+
 ## 5. Deletion and Retention
 
 - Applications and status history are not physically deleted through normal user operations.
@@ -428,6 +457,10 @@ Expected indexes:
 - `application_status_history(organisation_id, application_id, created_at)`
 - `application_status_history(organisation_id, created_at DESC, id DESC)`
 - `candidate_documents(organisation_id, candidate_id, created_at, id)`
+- unique `ai_cv_extractions(organisation_id, requested_by_user_id, idempotency_key_hash)`
+- `ai_cv_extractions(organisation_id, candidate_id, created_at)`
+- unique `ai_match_explanations(organisation_id, job_id, candidate_id, source_fingerprint)`
+- `ai_match_explanations(organisation_id, job_id, created_at)`
 - `audit_events(organisation_id, occurred_at, id)`
 - `audit_events(organisation_id, event_type, occurred_at, id)`
 - `audit_events(organisation_id, actor_user_id, occurred_at, id)`

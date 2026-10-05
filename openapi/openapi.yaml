@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.14.0
+  version: 0.15.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -31,12 +31,16 @@ info:
     Phase 8 adds an Admin-requested asynchronous Compliance expiry digest. Its
     SQS payload contains only an internal request identifier; delivery status
     is durable and tenant-scoped, while the email contains aggregate counts only.
+    Phase 9 adds explicitly requested AI-assisted CV extraction with mandatory
+    human review, and short AI explanations grounded only in existing deterministic
+    match factors. AI output never changes ranking or recruitment state.
 
     Deployments configured as the public portfolio demo return `403` for
     registration, Organisation creation, password recovery, invitation creation,
     and Candidate document upload/deletion. These deployment restrictions are
     enforced by the backend; ordinary non-demo deployments retain the documented
-    role and validation behaviour.
+        role and validation behaviour. AI request and apply operations are also
+        disabled by the backend in the public portfolio demo.
   license:
     name: All rights reserved
 servers:
@@ -1670,6 +1674,142 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/TenantNotFound" }
         "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/candidates/{candidate}/documents/{document}/ai-extractions:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+      - $ref: "#/components/parameters/CandidateDocumentId"
+    post:
+      operationId: requestCvExtraction
+      summary: Request AI-assisted CV extraction
+      description: |
+        Admin and Recruiter may explicitly queue extraction from an existing
+        tenant-owned private PDF or DOCX Candidate Document. The document is sent
+        to the configured external AI provider. Nothing is written to Candidate
+        fields until a human reviews and applies selected values. DOCX extraction
+        covers document text; embedded images are not interpreted.
+      tags: [AI]
+      security: [{ StatefulSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/XsrfToken"
+      responses:
+        "202":
+          description: The durable extraction request was queued or safely reused.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CvExtractionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/CandidateDocumentNotFound" }
+        "409": { $ref: "#/components/responses/IdempotencyConflict" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/AiCvRequestUnprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AiDisabled" }
+  /organisations/{organisation}/candidates/{candidate}/documents/{document}/ai-extractions/{extraction}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+      - $ref: "#/components/parameters/CandidateDocumentId"
+      - $ref: "#/components/parameters/CvExtractionId"
+    get:
+      operationId: getCvExtraction
+      summary: Get an AI extraction review draft or operation state
+      tags: [AI]
+      security: [{ StatefulSession: [] }]
+      responses:
+        "200":
+          description: Tenant-scoped extraction state and validated review draft.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CvExtractionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/CandidateDocumentNotFound" }
+  /organisations/{organisation}/candidates/{candidate}/documents/{document}/ai-extractions/{extraction}/apply:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/CandidateId"
+      - $ref: "#/components/parameters/CandidateDocumentId"
+      - $ref: "#/components/parameters/CvExtractionId"
+    post:
+      operationId: applyCvExtraction
+      summary: Apply explicitly reviewed Candidate fields
+      description: |
+        Applies only the selected, human-reviewed and optionally edited fields
+        through the existing Candidate update behaviour. A Candidate changed
+        since draft generation produces `409` and is never silently overwritten.
+      tags: [AI]
+      security: [{ StatefulSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplyCvExtractionRequest" }
+      responses:
+        "200":
+          description: Selected reviewed fields were applied.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CandidateResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/CandidateDocumentNotFound" }
+        "409": { $ref: "#/components/responses/AiReviewConflict" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/jobs/{job}/matches/{candidate}/ai-explanations:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/JobId"
+      - $ref: "#/components/parameters/CandidateId"
+    post:
+      operationId: requestMatchExplanation
+      summary: Request an AI explanation of deterministic match factors
+      description: |
+        Queues a concise explanation grounded only in the current deterministic
+        qualification, occupation, distance and Application factors. It creates
+        no score and cannot change rank. An operation with the same source
+        fingerprint is reused to control cost.
+      tags: [AI]
+      security: [{ StatefulSession: [] }]
+      parameters:
+        - $ref: "#/components/parameters/XsrfToken"
+      responses:
+        "202":
+          description: The explanation was queued or a current operation was reused.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchExplanationResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/JobNotFound" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AiDisabled" }
+  /organisations/{organisation}/jobs/{job}/matches/{candidate}/ai-explanations/{explanation}:
+    parameters:
+      - $ref: "#/components/parameters/OrganisationId"
+      - $ref: "#/components/parameters/JobId"
+      - $ref: "#/components/parameters/CandidateId"
+      - $ref: "#/components/parameters/MatchExplanationId"
+    get:
+      operationId: getMatchExplanation
+      summary: Get an AI match explanation and staleness state
+      tags: [AI]
+      security: [{ StatefulSession: [] }]
+      responses:
+        "200":
+          description: Explanation state; `stale` is true when current deterministic factors differ.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchExplanationResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/JobNotFound" }
 components:
   securitySchemes:
     StatefulSession:
@@ -1768,6 +1908,18 @@ components:
       required: true
       description: Digest request identifier resolved only within the trusted route Organisation.
       schema: { type: integer, format: int64, minimum: 1 }
+    CvExtractionId:
+      name: extraction
+      in: path
+      required: true
+      description: AI extraction identifier scoped to the trusted Organisation, Candidate, and source Document.
+      schema: { type: integer, format: int64, minimum: 1 }
+    MatchExplanationId:
+      name: explanation
+      in: path
+      required: true
+      description: AI explanation identifier scoped to the trusted Organisation, Job, and Candidate.
+      schema: { type: integer, format: int64, minimum: 1 }
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -1824,6 +1976,24 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ForbiddenError"
+    AiDisabled:
+      description: AI assistance is disabled by deployment configuration.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AiDisabledError" }
+    AiReviewConflict:
+      description: The Candidate changed after draft generation, or the extraction is no longer reviewable.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AiReviewConflictError" }
+    AiCvRequestUnprocessable:
+      description: The header is invalid, or the selected document type cannot be processed by AI.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/ValidationError"
+              - $ref: "#/components/schemas/AiOperationError"
     TenantNotFound:
       description: |
         The organisation is nonexistent or is not available through an active
@@ -3381,6 +3551,122 @@ components:
         message:
           type: string
           const: If an account exists for that email, a password reset link will be sent.
+    CvExtractionDraft:
+      type: object
+      additionalProperties: false
+      required: [first_name, last_name, email, phone, occupation, location]
+      properties:
+        first_name: { type: [string, "null"], maxLength: 100 }
+        last_name: { type: [string, "null"], maxLength: 100 }
+        email: { type: [string, "null"], format: email, maxLength: 255 }
+        phone: { type: [string, "null"], maxLength: 50 }
+        occupation: { type: [string, "null"], maxLength: 255 }
+        location: { type: [string, "null"], maxLength: 255 }
+      description: |
+        Validated review suggestions only. Unknown values are null. Availability,
+        notes, coordinates, qualifications and protected characteristics are excluded.
+    CvExtraction:
+      type: object
+      additionalProperties: false
+      required: [id, candidate_id, candidate_document_id, status, prompt_version, schema_version, draft, failure_code, created_at, applied_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        candidate_id: { type: integer, format: int64, minimum: 1 }
+        candidate_document_id: { type: integer, format: int64, minimum: 1 }
+        status: { type: string, enum: [queued, processing, review_ready, applied, failed] }
+        prompt_version: { type: string }
+        schema_version: { type: string }
+        draft:
+          oneOf:
+            - $ref: "#/components/schemas/CvExtractionDraft"
+            - type: "null"
+        failure_code:
+          type: [string, "null"]
+          enum: [null, unsupported_document, source_document_missing, source_candidate_missing, provider_not_configured, provider_configuration_changed, provider_rejected_request, invalid_provider_response]
+        created_at: { type: string, format: date-time }
+        applied_at: { type: [string, "null"], format: date-time }
+    CvExtractionResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/CvExtraction" }
+    ApplyCvExtractionRequest:
+      type: object
+      additionalProperties: false
+      required: [fields]
+      properties:
+        fields:
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          properties:
+            first_name: { type: string, minLength: 1, maxLength: 100 }
+            last_name: { type: string, minLength: 1, maxLength: 100 }
+            email: { type: [string, "null"], format: email, maxLength: 255 }
+            phone: { type: [string, "null"], maxLength: 50 }
+            occupation: { type: [string, "null"], maxLength: 255 }
+            location: { type: [string, "null"], maxLength: 255 }
+    MatchExplanationFactor:
+      type: object
+      additionalProperties: false
+      required: [type, explanation]
+      properties:
+        type: { type: string, enum: [qualification, occupation, distance, application] }
+        explanation: { type: string, minLength: 1, maxLength: 300 }
+    MatchExplanation:
+      type: object
+      additionalProperties: false
+      required: [id, job_id, candidate_id, status, stale, summary, factors, failure_code, created_at, disclaimer]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        job_id: { type: integer, format: int64, minimum: 1 }
+        candidate_id: { type: integer, format: int64, minimum: 1 }
+        status: { type: string, enum: [queued, processing, ready, failed] }
+        stale: { type: boolean }
+        summary: { type: [string, "null"], maxLength: 600 }
+        factors:
+          oneOf:
+            - type: array
+              minItems: 2
+              maxItems: 4
+              items: { $ref: "#/components/schemas/MatchExplanationFactor" }
+            - type: "null"
+        failure_code: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+        disclaimer:
+          type: string
+          const: AI-generated explanation based on deterministic match factors. It does not affect ranking.
+    MatchExplanationResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/MatchExplanation" }
+    AiDisabledError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message: { type: string, const: AI assistance is not enabled. }
+    AiOperationError:
+      type: object
+      additionalProperties: false
+      required: [message, code]
+      properties:
+        message: { type: string, const: This document cannot be processed. }
+        code: { type: string, const: unsupported_document }
+    AiReviewConflictError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          enum:
+            - The candidate changed after this AI draft was generated. Refresh and review again.
+            - This AI extraction is not available for review.
+        code: { type: string, const: stale_candidate }
     AuditActor:
       type: object
       additionalProperties: false
@@ -3440,6 +3726,8 @@ components:
         links: { $ref: "#/components/schemas/CandidatePaginationLinks" }
         meta: { $ref: "#/components/schemas/CandidatePaginationMeta" }
 tags:
+  - name: AI
+    description: Optional, explicitly requested AI assistance with human review and deterministic Matching boundaries.
   - name: Identity
     description: First-party stateful SPA identity and password lifecycle operations.
   - name: Organisation

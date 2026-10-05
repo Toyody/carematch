@@ -26,6 +26,7 @@ final class RejectPublicDemoOperation
     private function label(string $operation): string
     {
         return match ($operation) {
+            'ai-assistance' => 'AI assistance',
             'candidate-document-write' => 'Candidate document changes',
             'expiry-digest' => 'Credential expiry digest delivery',
             'invitation-creation' => 'Invitation sending',
