@@ -106,6 +106,11 @@ test("recruiter completes the critical hiring workflow and sees the dashboard", 
   ).toBeVisible();
   await expect(page.getByText("Occupation: match")).toBeVisible();
   await expect(page.getByText("Distance: 0.0 km")).toBeVisible();
+  await page.getByRole("button", { name: "Generate AI explanation" }).click();
+  await expect(page.getByText(/does not affect ranking/).last()).toBeVisible();
+  await expect(
+    page.getByText(`Rank 1: ${candidateName} Lovelace`),
+  ).toBeVisible();
 
   await page.goto(organisationPath!);
   await page.getByRole("link", { name: "Manage applications" }).click();

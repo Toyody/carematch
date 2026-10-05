@@ -1,7 +1,7 @@
 # CareMatch Architecture Overview
 
 This diagram shows the currently implemented local and CI architecture plus the
-validated repository-side Phase 8 production target. Live HTTPS/AWS provisioning
+validated repository-side Phase 9 production target. Live HTTPS/AWS provisioning
 and operational evidence remain Phase 6B/6C work.
 
 ```mermaid
@@ -21,6 +21,7 @@ flowchart TB
             recruitment[Recruitment]
             compliance[Compliance catalogue and evaluator]
             matching[Matching ranking and spatial read model]
+            ai[AI assistance lifecycle and provider boundary]
             audit[Audit trail]
             dashboard[Dashboard read model]
             analytics[Analytics cohort and reporting read model]
@@ -33,6 +34,10 @@ flowchart TB
     sqs[[SQS compliance queue]]
     worker[Laravel queue worker]
     dlq[[SQS dead-letter queue]]
+    aiSqs[[SQS AI queue]]
+    aiWorker[Laravel AI worker]
+    aiDlq[[SQS AI dead-letter queue]]
+    provider[[External AI provider]]
     ci[GitHub Actions]
     quality[PHPUnit · Vitest · PHPStan · Playwright · OpenAPI lint]
 
@@ -46,6 +51,7 @@ flowchart TB
     tenant --> recruitment
     tenant --> compliance
     tenant --> matching
+    tenant --> ai
     tenant --> audit
     tenant --> dashboard
     tenant --> analytics
@@ -56,6 +62,7 @@ flowchart TB
     recruitment --> postgres
     compliance --> postgres
     matching -->|tenant-scoped ranking, ST_Distance and ST_DWithin| postgres
+    ai -->|durable requests and validated drafts only| postgres
     audit -->|append-only events and paginated reads| postgres
     dashboard -->|bounded tenant-scoped aggregation| postgres
     analytics -->|UTC cohort, funnel, daily series and medians| postgres
@@ -66,6 +73,13 @@ flowchart TB
     worker -->|bounded failures after 3 receives| dlq
     http -->|shared cache and rate limits| redis
     worker -->|distributed overlap lock| redis
+    http -->|AI request ID after commit| aiSqs
+    aiSqs --> aiWorker
+    aiWorker -->|reload exact source IDs| postgres
+    aiWorker -->|read selected private document| privateStorage
+    aiWorker -->|minimal document or deterministic factors| provider
+    aiWorker -->|bounded failures after 3 receives| aiDlq
+    aiWorker -->|overlap lock| redis
 
     ci --> quality
     quality -. verifies .-> frontend
@@ -106,6 +120,10 @@ flowchart TB
   durable idempotency and delivery state; Redis supplies temporary coordination;
   SQS redrive owns dead-letter handling. The worker uses the backend image and
   never places invitation/reset tokens or Candidate details in a queue message.
+- Phase 9 queues only an AI request ID on its dedicated timeout/DLQ topology.
+  The AI module owns assistive drafts and explanations, while Candidate and
+  deterministic Matching remain authoritative. Admin/Recruiter human review is
+  mandatory before any extracted field reaches Candidate persistence.
 
 See [the detailed architecture](../architecture.md) and
 [the entity-relationship diagram](entity-relationship.md).

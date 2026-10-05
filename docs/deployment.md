@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Phase 6A and Phase 8 prepare repository-side production definitions but do not claim a live deployment. `infra/terraform` has been formatted and validated only; it has not been planned against an account or applied. Phase 6B requires an authenticated AWS account, region, controlled DNS name and billable AWS resources. Phase 6C requires real HTTPS, queue, log, alarm, backup and restore verification.
+Phase 6A, Phase 8 and Phase 9 prepare repository-side production definitions but do not claim a live deployment. `infra/terraform` has been formatted and validated only; it has not been planned against an account or applied. Phase 6B requires an authenticated AWS account, region, controlled DNS name and billable AWS resources. Phase 6C requires real HTTPS, queue, log, alarm, backup and restore verification.
 
 No command in the normal container startup path migrates, seeds or resets the database automatically.
 
@@ -19,7 +19,13 @@ https://<host>/
 
 Use an ACM certificate on the public ALB listener. Route 53 or an external DNS provider points the controlled hostname to the ALB. The backend target group checks `/up`; the public API smoke check uses `/api/v1/health`. `NEXT_PUBLIC_API_URL` is deliberately an empty string so browser API and Sanctum CSRF requests remain relative to the current HTTPS origin.
 
-The cost-conscious portfolio topology uses an internet-facing ALB and one backend, frontend and worker Fargate task in public subnets with public IPs. Only HTTP tasks register with the ALB; the worker has no listener. This avoids a NAT Gateway. RDS and a one-node, non-HA ElastiCache Redis replication group remain non-public in private data subnets. This reduces cost but is not highly available.
+The cost-conscious portfolio topology uses an internet-facing ALB and backend,
+frontend, Compliance-worker and optional AI-worker Fargate services in public
+subnets with public IPs. Only HTTP tasks register with the ALB; workers have no
+listener. The AI service has desired count zero while AI is disabled. This avoids
+a NAT Gateway. RDS and a one-node, non-HA ElastiCache Redis replication group
+remain non-public in private data subnets. This reduces cost but is not highly
+available.
 
 ## Production containers
 
@@ -66,12 +72,20 @@ Important production values include:
 - `TRUSTED_PROXIES=*` only because the backend security group accepts HTTP solely from the ALB;
 - host-only `carematch_session`, `SESSION_SECURE_COOKIE=true`, HttpOnly and SameSite Lax;
 - the hostname in `SANCTUM_STATEFUL_DOMAINS`, without a scheme;
-- `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`;
+- `SESSION_DRIVER=database`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=sqs`;
 - `LOG_CHANNEL=stderr`;
 - `CANDIDATE_DOCUMENTS_DISK=candidate_documents_s3`;
 - `CARE_MATCH_PUBLIC_DEMO=true` for the portfolio deployment.
 
 Inject `APP_KEY`, database credentials and the demo password through ECS secrets. Prefer an RDS-managed Secrets Manager secret for database credentials and SSM Parameter Store SecureString for application secrets where rotation is not required. The ECS task role obtains S3 credentials through the task metadata service; do not set static `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`.
+
+AI remains disabled unless `CARE_MATCH_AI_ENABLED=true`, with an explicit
+`AI_PROVIDER` and `AI_MODEL`. The OpenAI API key is an ECS secret reference, not
+plaintext environment, Terraform source, tfvars or workflow content. Referencing
+a Secrets Manager ARN still makes the ARN and task-definition relationship part
+of Terraform state; access to state remains sensitive. The public portfolio must
+leave AI disabled until external-provider privacy, retention, egress and cost
+controls have been approved and verified.
 
 ## Database, sessions and cache
 
@@ -97,6 +111,24 @@ The developer/CI integration uses `softwaremill/elasticmq:1.7.1` through
 producer → SQS-compatible queue → worker success, Redis cache/locks, repeated
 receives and actual DLQ redrive. Normal `make up` does not start ElasticMQ or a
 worker.
+
+Phase 9 adds a separate encrypted `ai` queue and DLQ because provider latency has
+a materially larger timeout. Its worker command is:
+
+```text
+php artisan queue:work sqs --queue=ai --tries=0 --timeout=120 --sleep=1 --max-time=3600 --memory=512
+```
+
+The AI queue visibility timeout is 180 seconds and redrives after three receives.
+The dedicated ECS worker reuses the backend image, has no listener, can consume
+only the AI queue, and has read-only `s3:GetObject` permission for the Candidate
+document prefix. Messages contain only an internal AI request ID. Provider
+transient failures are left to SQS redrive; permanent validation/source failures
+are recorded safely without retry. On the third transient failure, the request is
+marked `failed` with `delivery_attempts_exhausted` before the exception is
+re-thrown; SQS still redrives the message and remains the transport dead-letter
+authority. `make test-async` exercises both queue/DLQ pairs against ElasticMQ.
+The public-demo configuration needs neither an AI task instance nor an API key.
 
 Run migrations as a one-off ECS task using the exact backend image being deployed:
 
@@ -143,13 +175,13 @@ Create a GitHub Environment (normally `production`) with approval protection whe
 - `ECR_BACKEND_REPOSITORY`, `ECR_FRONTEND_REPOSITORY`
 - `ECS_CLUSTER`
 - `ECS_BACKEND_SERVICE`, `ECS_FRONTEND_SERVICE`
-- `ECS_WORKER_SERVICE`
-- `ECS_BACKEND_TASK_FAMILY`, `ECS_FRONTEND_TASK_FAMILY`, `ECS_WORKER_TASK_FAMILY`
+- `ECS_WORKER_SERVICE`, `ECS_AI_WORKER_SERVICE`
+- `ECS_BACKEND_TASK_FAMILY`, `ECS_FRONTEND_TASK_FAMILY`, `ECS_WORKER_TASK_FAMILY`, `ECS_AI_WORKER_TASK_FAMILY`
 - `ECS_TASK_SUBNETS`, `ECS_TASK_SECURITY_GROUPS` as comma-separated IDs suitable for the AWS CLI network configuration
 
 The AWS role trust policy must restrict `token.actions.githubusercontent.com` to this repository and protected environment. Its least-privilege permissions cover ECR pushes, ECS task-definition registration, one-off task execution/inspection, service updates and `iam:PassRole` only for the ECS roles.
 
-Run `.github/workflows/deploy-production.yml` manually with the region and exact HTTPS URL. It fails visibly on missing inputs, OIDC authentication, image push, migration, ECS stabilization or HTTPS smoke failure. It deploys the worker from the same immutable backend SHA image with its pre-provisioned command and no ALB registration. It assumes Terraform-created task definitions already contain runtime environment variables, secrets, task/execution roles, CloudWatch `awslogs` configuration, CPU/memory, port mappings and health settings.
+Run `.github/workflows/deploy-production.yml` manually with the region and exact HTTPS URL. It fails visibly on missing inputs, OIDC authentication, image push, migration, ECS stabilization or HTTPS smoke failure. It deploys both Compliance and AI workers from the same immutable backend SHA image with their pre-provisioned commands and no ALB registration. It assumes Terraform-created task definitions already contain runtime environment variables, secrets, task/execution roles, CloudWatch `awslogs` configuration, CPU/memory, port mappings and health settings.
 
 ## Terraform and operational monitoring
 

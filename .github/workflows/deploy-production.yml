@@ -40,9 +40,11 @@ jobs:
       ECS_BACKEND_SERVICE: ${{ vars.ECS_BACKEND_SERVICE }}
       ECS_FRONTEND_SERVICE: ${{ vars.ECS_FRONTEND_SERVICE }}
       ECS_WORKER_SERVICE: ${{ vars.ECS_WORKER_SERVICE }}
+      ECS_AI_WORKER_SERVICE: ${{ vars.ECS_AI_WORKER_SERVICE }}
       ECS_BACKEND_TASK_FAMILY: ${{ vars.ECS_BACKEND_TASK_FAMILY }}
       ECS_FRONTEND_TASK_FAMILY: ${{ vars.ECS_FRONTEND_TASK_FAMILY }}
       ECS_WORKER_TASK_FAMILY: ${{ vars.ECS_WORKER_TASK_FAMILY }}
+      ECS_AI_WORKER_TASK_FAMILY: ${{ vars.ECS_AI_WORKER_TASK_FAMILY }}
       ECS_TASK_SUBNETS: ${{ vars.ECS_TASK_SUBNETS }}
       ECS_TASK_SECURITY_GROUPS: ${{ vars.ECS_TASK_SECURITY_GROUPS }}
     steps:
@@ -53,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$PRODUCTION_URL" == https://* ]] || { echo "production_url must use HTTPS" >&2; exit 1; }
-          for name in AWS_DEPLOY_ROLE_ARN ECR_BACKEND_REPOSITORY ECR_FRONTEND_REPOSITORY ECS_CLUSTER ECS_BACKEND_SERVICE ECS_FRONTEND_SERVICE ECS_WORKER_SERVICE ECS_BACKEND_TASK_FAMILY ECS_FRONTEND_TASK_FAMILY ECS_WORKER_TASK_FAMILY ECS_TASK_SUBNETS ECS_TASK_SECURITY_GROUPS; do
+          for name in AWS_DEPLOY_ROLE_ARN ECR_BACKEND_REPOSITORY ECR_FRONTEND_REPOSITORY ECS_CLUSTER ECS_BACKEND_SERVICE ECS_FRONTEND_SERVICE ECS_WORKER_SERVICE ECS_AI_WORKER_SERVICE ECS_BACKEND_TASK_FAMILY ECS_FRONTEND_TASK_FAMILY ECS_WORKER_TASK_FAMILY ECS_AI_WORKER_TASK_FAMILY ECS_TASK_SUBNETS ECS_TASK_SECURITY_GROUPS; do
             [[ -n "${!name:-}" ]] || { echo "Missing GitHub Environment variable: $name" >&2; exit 1; }
           done
 
@@ -92,9 +94,11 @@ jobs:
           aws ecs describe-task-definition --task-definition "$ECS_BACKEND_TASK_FAMILY" --query taskDefinition > backend-current.json
           aws ecs describe-task-definition --task-definition "$ECS_FRONTEND_TASK_FAMILY" --query taskDefinition > frontend-current.json
           aws ecs describe-task-definition --task-definition "$ECS_WORKER_TASK_FAMILY" --query taskDefinition > worker-current.json
+          aws ecs describe-task-definition --task-definition "$ECS_AI_WORKER_TASK_FAMILY" --query taskDefinition > ai-worker-current.json
           jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' backend-current.json > backend-task.json
           jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' frontend-current.json > frontend-task.json
           jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' worker-current.json > worker-task.json
+          jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' ai-worker-current.json > ai-worker-task.json
 
       - name: Render backend task definition
         id: backend-task
@@ -118,6 +122,14 @@ jobs:
         with:
           task-definition: worker-task.json
           container-name: worker
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPOSITORY }}:${{ github.sha }}
+
+      - name: Render AI worker task definition from the same backend image
+        id: ai-worker-task
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ai-worker-task.json
+          container-name: ai-worker
           image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPOSITORY }}:${{ github.sha }}
 
       - name: Register backend task definition
@@ -176,6 +188,14 @@ jobs:
         with:
           task-definition: ${{ steps.worker-task.outputs.task-definition }}
           service: ${{ env.ECS_WORKER_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Deploy AI worker service and wait for stabilization
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.ai-worker-task.outputs.task-definition }}
+          service: ${{ env.ECS_AI_WORKER_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
 

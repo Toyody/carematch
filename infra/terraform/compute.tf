@@ -33,6 +33,11 @@ resource "aws_cloudwatch_log_group" "worker" {
   retention_in_days = 30
 }
 
+resource "aws_cloudwatch_log_group" "ai_worker" {
+  name              = "/ecs/${local.name}/ai-worker"
+  retention_in_days = 30
+}
+
 resource "aws_lb" "main" {
   name               = substr(local.name, 0, 32)
   load_balancer_type = "application"
@@ -128,6 +133,11 @@ locals {
     { name = "MAIL_SCHEME", value = "tls" },
     { name = "MAIL_FROM_ADDRESS", value = var.mail_from_address },
     { name = "CARE_MATCH_PUBLIC_DEMO", value = "false" },
+    { name = "CARE_MATCH_AI_ENABLED", value = tostring(var.care_match_ai_enabled) },
+    { name = "AI_PROVIDER", value = var.ai_provider },
+    { name = "AI_MODEL", value = var.ai_model },
+    { name = "AI_QUEUE", value = aws_sqs_queue.ai.name },
+    { name = "AI_MAX_RECEIVE_COUNT", value = "3" },
   ]
 
   backend_secrets = [
@@ -136,6 +146,21 @@ locals {
     { name = "REDIS_PASSWORD", valueFrom = var.redis_auth_token_secret_arn },
     { name = "MAIL_PASSWORD", valueFrom = var.mail_password_secret_arn },
   ]
+}
+
+locals {
+  ai_worker_environment = concat(
+    [for item in local.common_backend_environment : item if item.name != "SQS_QUEUE"],
+    [{ name = "SQS_QUEUE", value = aws_sqs_queue.ai.name }]
+  )
+  ai_worker_secrets = concat(
+    [
+      { name = "APP_KEY", valueFrom = var.app_key_secret_arn },
+      { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.postgres.master_user_secret[0].secret_arn}:password::" },
+      { name = "REDIS_PASSWORD", valueFrom = var.redis_auth_token_secret_arn },
+    ],
+    var.openai_api_key_secret_arn == "" ? [] : [{ name = "OPENAI_API_KEY", valueFrom = var.openai_api_key_secret_arn }]
+  )
 }
 
 resource "aws_ecs_task_definition" "backend" {
@@ -188,6 +213,24 @@ resource "aws_ecs_task_definition" "worker" {
   }])
 }
 
+resource "aws_ecs_task_definition" "ai_worker" {
+  family                   = "${local.name}-ai-worker"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 512
+  memory                   = 1024
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ai_worker_task.arn
+  container_definitions = jsonencode([{
+    name             = "ai-worker", image = var.backend_image, essential = true,
+    command          = ["php", "artisan", "queue:work", "sqs", "--queue=${aws_sqs_queue.ai.name}", "--tries=0", "--timeout=120", "--sleep=1", "--max-time=3600", "--memory=512"],
+    stopTimeout      = 150,
+    environment      = local.ai_worker_environment,
+    secrets          = local.ai_worker_secrets,
+    logConfiguration = { logDriver = "awslogs", options = { awslogs-group = aws_cloudwatch_log_group.ai_worker.name, awslogs-region = data.aws_region.current.region, awslogs-stream-prefix = "ai-worker" } }
+  }])
+}
+
 resource "aws_ecs_service" "backend" {
   name            = "backend"
   cluster         = aws_ecs_cluster.main.id
@@ -231,6 +274,19 @@ resource "aws_ecs_service" "worker" {
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker.arn
   desired_count   = 1
+  launch_type     = "FARGATE"
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = true
+  }
+}
+
+resource "aws_ecs_service" "ai_worker" {
+  name            = "ai-worker"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.ai_worker.arn
+  desired_count   = var.care_match_ai_enabled ? 1 : 0
   launch_type     = "FARGATE"
   network_configuration {
     subnets          = aws_subnet.public[*].id

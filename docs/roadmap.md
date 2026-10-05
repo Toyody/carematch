@@ -280,18 +280,22 @@ Introduced only for measured product or operational requirements:
 Phase 8 completion means repository-side implementation and disposable local/CI
 evidence. Terraform has not been applied and live AWS queue, worker, cache,
 CloudWatch, alarm-delivery and performance behaviour remain Phase 6B/6C
-verification. Phase 9 remains unimplemented.
+verification.
 
 ## Phase 9 — AI-assisted Product Features
 
 AI must not control business-critical hiring decisions.
 
-- [ ] CV parsing
-- [ ] Structured data extraction
-- [ ] Human review before persistence
-- [ ] Match explanation generation
+- [x] CV parsing
+- [x] Structured data extraction
+- [x] Human review before persistence
+- [x] Match explanation generation
 
 A deterministic and reviewable process remains the source of any match score.
+Phase 9 uses deterministic fake-provider automation; the guarded live-provider
+smoke remains unrun until an operator supplies explicit synthetic-test
+credentials. Terraform was not applied and live AI queue/worker, secret injection,
+provider egress and alarms remain Phase 6B/6C evidence.
 
 ## Non-goals
 

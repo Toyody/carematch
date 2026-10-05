@@ -2,7 +2,7 @@
 
 ## 1. Architectural Style
 
-CareMatch is a modular monolith using pragmatic Clean Architecture. The local and CI system runs as one Laravel backend, one Next.js frontend, PostgreSQL and a small Redis cache/lock service. Phase 8 adds an optional local SQS-compatible integration profile and repository-side AWS definitions; actual AWS deployment and operational verification remain Phase 6B/6C work.
+CareMatch is a modular monolith using pragmatic Clean Architecture. The local and CI system runs as one Laravel backend, one Next.js frontend, PostgreSQL and a small Redis cache/lock service. Phase 8 adds an optional local SQS-compatible integration profile and repository-side AWS definitions; Phase 9 adds a focused assistive AI module and dedicated queue/worker topology. Actual AWS deployment, live provider connectivity and operational verification remain Phase 6B/6C work.
 
 The architecture protects meaningful business rules, tenant isolation and data integrity while preserving Laravel conventions and avoiding ceremony. Microservices, Kubernetes, Kafka, GraphQL, CQRS and event sourcing are not part of the MVP architecture.
 
@@ -46,6 +46,11 @@ backend/app/
             Infrastructure/
             Interfaces/
         Matching/
+            Domain/
+            Application/
+            Infrastructure/
+            Interfaces/
+        Ai/
             Domain/
             Application/
             Infrastructure/
@@ -128,6 +133,16 @@ Owns deterministic, explainable matching policy and the read-only Job match API.
 The authoritative order is qualification coverage, exact normalised occupation,
 known distance and Candidate ID. The implementation deliberately has no numeric
 score, cache table, generic search framework, external geocoder or AI component.
+
+### AI
+
+Owns assistive request lifecycles, prompt/schema versions, validated drafts,
+provider contracts/adapters and explanation persistence. It does not own or
+directly persist Candidates, documents, Jobs, Applications, qualifications or
+deterministic matching. Candidate changes go through the existing Candidate
+Application action after an explicit human review. A focused Matching
+Application read contract supplies only the deterministic, non-sensitive facts
+needed for explanation.
 
 ## 4. Layers and Dependency Rule
 
@@ -398,6 +413,44 @@ external side effect. A crash after the mail provider accepts a message and
 before `sent` is committed can result in repeat delivery. The honest guarantee
 is retryable at-least-once transport in that narrow window, not exactly-once
 email.
+
+### Phase 9 AI asynchronous boundary
+
+AI is fail-closed and disabled by default. Request endpoints first persist a
+tenant-scoped operation, then dispatch only its integer ID after commit to a
+dedicated AI queue. A same-key CV retry reloads the queued operation and safely
+redispatches it, closing the practical database-commit-to-SQS-send recovery gap
+without a transactional outbox. PostgreSQL uniqueness is the durable authority;
+duplicate messages are harmless because workers use a short overlap lock and
+terminal persisted states no-op.
+
+The worker reloads the exact Candidate/document or deterministic match factors
+through focused Application contracts. It never serialises document bytes,
+names, email, phone, credentials, tokens, API keys or `TenantContext`. Provider
+429, 5xx and network failures are rethrown for SQS redelivery; unsupported input,
+missing sources, changed provider configuration and invalid structured output
+become safe permanent failure codes. The dedicated worker uses a 120-second job
+timeout, a 180-second SQS visibility timeout and redrives after three receives.
+Laravel failed-job storage remains disabled, so SQS/DLQ is the single transport
+failure authority. On the third retryable processing failure the worker first
+records `failed` with the safe `delivery_attempts_exhausted` code, then rethrows
+so SQS can perform its normal redrive to the DLQ. Later physical deliveries see
+the terminal database state and no-op. The DLQ alarm and internal request ID
+provide operator correlation; autonomous replay or reconciliation is deferred.
+
+The OpenAI adapter uses the Responses API, direct base64 file input and strict
+JSON Schema output with `store=false` and no tools. Prompt text explicitly treats
+documents as untrusted data. Application-side validation remains mandatory.
+`store=false` is not a Zero Data Retention guarantee; provider/account retention
+and regulatory controls require separate deployment verification.
+
+Human apply is one transaction: it locks the extraction record, verifies the
+review-ready lifecycle and Candidate version/fingerprint, delegates selected
+human-edited values to the normal Candidate update action, then marks the draft
+applied and records only safe IDs/event names. No worker directly changes a
+Candidate. Match explanations are presentation records keyed by an exact source
+fingerprint; reading recomputes the fingerprint and marks old text stale without
+changing deterministic rank.
 
 ## 9. API Conventions
 

@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := docker compose
 
-.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e test-production-images test-async test-terraform test-performance lint analyse format build audit openapi-lint check
+.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e test-production-images test-async test-ai-provider test-terraform test-performance lint analyse format build audit openapi-lint check
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -61,6 +61,13 @@ test-production-images:
 
 test-async:
 	./scripts/test-async-infrastructure.sh
+
+test-ai-provider:
+	@test "$${CARE_MATCH_AI_ENABLED:-}" = "true" || (echo "CARE_MATCH_AI_ENABLED=true is required." >&2; exit 1)
+	@test "$${AI_PROVIDER:-}" = "openai" || (echo "AI_PROVIDER=openai is required." >&2; exit 1)
+	@test -n "$${AI_MODEL:-}" || (echo "AI_MODEL is required." >&2; exit 1)
+	@test -n "$${OPENAI_API_KEY:-}" || (echo "OPENAI_API_KEY is required." >&2; exit 1)
+	$(DOCKER_COMPOSE) run --rm -e CARE_MATCH_AI_ENABLED -e AI_PROVIDER -e AI_MODEL -e OPENAI_API_KEY backend php artisan ai:provider-smoke
 
 test-terraform:
 	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 fmt -check -recursive

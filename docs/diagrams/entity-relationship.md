@@ -162,6 +162,28 @@ erDiagram
         timestamptz sent_at
         timestamptz failed_at
     }
+    AI_CV_EXTRACTIONS {
+        bigint id PK
+        bigint organisation_id FK
+        bigint candidate_id FK
+        bigint candidate_document_id
+        bigint requested_by_user_id FK
+        string idempotency_key_hash UK
+        string status
+        jsonb draft
+        string candidate_fingerprint
+    }
+    AI_MATCH_EXPLANATIONS {
+        bigint id PK
+        bigint organisation_id FK
+        bigint job_id FK
+        bigint candidate_id FK
+        bigint requested_by_user_id FK
+        string source_fingerprint UK
+        string status
+        string summary
+        jsonb factors
+    }
 
     USERS ||--o{ ORGANISATION_MEMBERSHIPS : has
     ORGANISATIONS ||--o{ ORGANISATION_MEMBERSHIPS : contains
@@ -187,6 +209,11 @@ erDiagram
     ORGANISATION_MEMBERSHIPS ||--o{ AUDIT_EVENTS : acts
     ORGANISATIONS ||--o{ COMPLIANCE_EXPIRY_DIGEST_REQUESTS : owns
     USERS ||--o{ COMPLIANCE_EXPIRY_DIGEST_REQUESTS : requests
+    ORGANISATIONS ||--o{ AI_CV_EXTRACTIONS : owns
+    CANDIDATES ||--o{ AI_CV_EXTRACTIONS : receives_draft
+    ORGANISATIONS ||--o{ AI_MATCH_EXPLANATIONS : owns
+    JOBS ||--o{ AI_MATCH_EXPLANATIONS : explains
+    CANDIDATES ||--o{ AI_MATCH_EXPLANATIONS : explains
 ```
 
 ## Integrity notes
@@ -224,6 +251,12 @@ erDiagram
 - Expiry digest requests uniquely scope the hashed client idempotency key to
   Organisation and requester. Status/count/timestamp CHECK constraints protect
   the small lifecycle; queue payloads contain only this table's internal ID.
+- CV extraction requests uniquely scope the hashed Idempotency-Key to tenant and
+  requester; composite Candidate/membership FKs protect ownership. The immutable
+  source-document ID intentionally survives source deletion without being
+  reattached to another document. Match explanations are unique by tenant,
+  Job, Candidate and exact deterministic source fingerprint. Neither table
+  stores raw CV text, provider payloads or an AI score.
 
 See [database design](../database-design.md) for exact constraints, indexes and
 transaction behaviour.

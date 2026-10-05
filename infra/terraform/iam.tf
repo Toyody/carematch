@@ -19,7 +19,7 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
-      Resource = [var.app_key_secret_arn, var.redis_auth_token_secret_arn, var.mail_password_secret_arn, aws_db_instance.postgres.master_user_secret[0].secret_arn]
+      Resource = compact([var.app_key_secret_arn, var.redis_auth_token_secret_arn, var.mail_password_secret_arn, var.openai_api_key_secret_arn, aws_db_instance.postgres.master_user_secret[0].secret_arn])
     }]
   })
 }
@@ -47,6 +47,11 @@ resource "aws_iam_role_policy" "backend_task" {
         Effect   = "Allow"
         Action   = ["sqs:GetQueueAttributes", "sqs:GetQueueUrl", "sqs:SendMessage"]
         Resource = aws_sqs_queue.expiry_digest.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["sqs:GetQueueAttributes", "sqs:GetQueueUrl", "sqs:SendMessage"]
+        Resource = aws_sqs_queue.ai.arn
       }
     ]
   })
@@ -76,6 +81,40 @@ resource "aws_iam_role_policy" "worker_task" {
       ]
       Resource = aws_sqs_queue.expiry_digest.arn
     }]
+  })
+}
+
+resource "aws_iam_role" "ai_worker_task" {
+  name = "${local.name}-ai-worker-task"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" }, Action = "sts:AssumeRole" }]
+  })
+}
+
+resource "aws_iam_role_policy" "ai_worker_task" {
+  name = "consume-ai-queue-and-read-candidate-documents"
+  role = aws_iam_role.ai_worker_task.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ChangeMessageVisibility",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+          "sqs:ReceiveMessage"
+        ]
+        Resource = aws_sqs_queue.ai.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.candidate_documents.arn}/candidate-documents/*"
+      }
+    ]
   })
 }
 
@@ -115,7 +154,7 @@ resource "aws_iam_role_policy" "github_deploy" {
       {
         Effect    = "Allow"
         Action    = ["iam:PassRole"]
-        Resource  = [aws_iam_role.ecs_execution.arn, aws_iam_role.backend_task.arn, aws_iam_role.worker_task.arn]
+        Resource  = [aws_iam_role.ecs_execution.arn, aws_iam_role.backend_task.arn, aws_iam_role.worker_task.arn, aws_iam_role.ai_worker_task.arn]
         Condition = { StringEquals = { "iam:PassedToService" = "ecs-tasks.amazonaws.com" } }
       }
     ]

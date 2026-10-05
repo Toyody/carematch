@@ -40,5 +40,9 @@ Route::prefix('v1')->group(
 );
 
 Route::prefix('v1')->group(
+    base_path('app/Modules/Ai/Interfaces/Http/routes.php'),
+);
+
+Route::prefix('v1')->group(
     base_path('app/Modules/Dashboard/Interfaces/Http/routes.php'),
 );

@@ -150,6 +150,36 @@ variable "candidate_documents_force_destroy" {
   description = "Must remain false in production; explicit escape hatch for disposable validation environments."
 }
 
+variable "care_match_ai_enabled" {
+  type        = bool
+  default     = false
+  description = "Explicit opt-in for external AI processing and the AI worker service."
+}
+
+variable "ai_provider" {
+  type        = string
+  default     = "openai"
+  description = "Configured AI provider adapter name."
+}
+
+variable "ai_model" {
+  type        = string
+  default     = ""
+  description = "Provider model selected by the operator; required before enabling AI."
+}
+
+variable "openai_api_key_secret_arn" {
+  type        = string
+  default     = ""
+  description = "Secrets Manager ARN containing the OpenAI API key. Required only when AI is enabled."
+  sensitive   = true
+
+  validation {
+    condition     = !var.care_match_ai_enabled || (var.ai_model != "" && var.openai_api_key_secret_arn != "")
+    error_message = "AI model and OpenAI secret ARN are required when CareMatch AI is enabled."
+  }
+}
+
 locals {
   name          = "${var.name_prefix}-${var.environment}"
   alarm_actions = var.alarm_action_arn == "" ? [] : [var.alarm_action_arn]

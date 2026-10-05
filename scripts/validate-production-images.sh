@@ -40,3 +40,5 @@ docker compose -f "$COMPOSE_FILE" exec -T backend php artisan cache:clear
 docker compose -f "$COMPOSE_FILE" exec -T backend php -r 'exit(extension_loaded("redis") ? 0 : 1);'
 docker compose -f "$COMPOSE_FILE" exec -T backend php artisan config:show queue
 docker compose -f "$COMPOSE_FILE" exec -T backend php artisan queue:work --help >/dev/null
+docker compose -f "$COMPOSE_FILE" exec -T backend php artisan config:show carematch.ai
+docker compose -f "$COMPOSE_FILE" exec -T backend php artisan queue:work sqs --queue=ai --help >/dev/null

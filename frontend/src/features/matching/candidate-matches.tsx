@@ -5,7 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { useAuth } from "@/features/identity/auth-context";
 import { getJob, type Job } from "@/features/job/api";
+import { AiMatchExplanation } from "@/features/ai/match-explanation";
+import {
+  getOrganisation,
+  type Organisation,
+} from "@/features/organisation/api";
 import { ApiError } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/public-demo";
 import { listCandidateMatches, type CandidateMatchPage } from "./api";
 
 export function CandidateMatches({
@@ -26,6 +32,7 @@ export function CandidateMatches({
     error: unknown;
     job: Job | null;
     key: string;
+    organisation: Organisation | null;
     page: CandidateMatchPage | null;
   } | null>(null);
 
@@ -35,16 +42,18 @@ export function CandidateMatches({
     const query = new URLSearchParams(queryString);
     void Promise.all([
       getJob(organisationId, jobId),
+      getOrganisation(organisationId),
       listCandidateMatches(organisationId, jobId, {
         max_distance_km: query.get("max_distance_km") ?? undefined,
         page: query.get("page") ?? undefined,
       }),
     ])
-      .then(([job, page]) => {
-        if (active) setResult({ error: null, job, key, page });
+      .then(([job, organisation, page]) => {
+        if (active) setResult({ error: null, job, key, organisation, page });
       })
       .catch((error: unknown) => {
-        if (active) setResult({ error, job: null, key, page: null });
+        if (active)
+          setResult({ error, job: null, key, organisation: null, page: null });
       });
     return () => {
       active = false;
@@ -93,14 +102,17 @@ export function CandidateMatches({
       </Shell>
     );
   }
-  if (!result?.job || !result.page)
+  if (!result?.job || !result.page || !result.organisation)
     return (
       <Shell title="Candidate matches">
         <p role="alert">Candidate matches could not be loaded.</p>
       </Shell>
     );
 
-  const { job, page } = result;
+  const { job, organisation, page } = result;
+  const mayUseAi =
+    ["admin", "recruiter"].includes(organisation.membership.role) &&
+    !isPublicDemo;
   return (
     <Shell eyebrow={job.title} title="Candidate matches">
       <p>
@@ -145,6 +157,13 @@ export function CandidateMatches({
               <span>
                 Application: {match.application_status ?? "not applied"}
               </span>
+              {mayUseAi ? (
+                <AiMatchExplanation
+                  candidateId={match.candidate.id}
+                  jobId={jobId}
+                  organisationId={organisationId}
+                />
+              ) : null}
               <Link
                 href={`/organisations/${organisationId}/candidates/${match.candidate.id}`}
               >

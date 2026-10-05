@@ -393,9 +393,8 @@ unverified until Phase 6B/6C deployment and operational checks are complete.
 ## 14. Non-MVP Features
 
 - Custom roles and permission builders
-- Fuzzy, semantic or AI matching
+- Fuzzy, semantic or AI ranking
 - Automated geocoding and occupation taxonomies
-- AI CV parsing and match explanations
 - Microservices and distributed architecture
 
 Phase 8 adds one bounded asynchronous product operation: an active Organisation
@@ -405,6 +404,50 @@ the authorised Compliance view. It contains no Candidate identity, credential
 number, notes, document information or legal-compliance claim. Invitation and
 password-reset token delivery remains synchronous so raw security tokens never
 enter SQS. Public-demo deployments reject the digest request server-side.
+
+### 14.1 AI-assisted workflows
+
+Phase 9 adds assistive features, not an automated decision maker. An Admin or
+Recruiter may explicitly submit an existing tenant-owned PDF or DOCX Candidate
+document for extraction. CareMatch sends that selected document to the configured
+external provider and validates a nullable draft containing only `first_name`,
+`last_name`, `email`, `phone`, `occupation` and `location`. It does not extract
+or persist notes, availability, qualifications, protected characteristics,
+health/disability information, personality, salary expectations or other
+unmodelled attributes. Qualification records remain manual choices from the
+authoritative Organisation catalogue.
+
+The draft is non-authoritative. The Candidate remains unchanged while the
+operation is queued, processing or ready for review. The reviewer sees current
+values beside editable suggestions, selects individual fields, and explicitly
+applies them through normal Candidate validation and audit behaviour. A
+Candidate-field fingerprint rejects an apply after intervening human edits.
+Hiring Managers may still view underlying Candidates and documents under the
+existing rules but cannot request, review or apply AI extraction.
+
+An Admin or Recruiter may explicitly request a concise explanation for one
+existing deterministic Job-to-Candidate match. The provider receives only the
+Job title/occupation, Candidate occupation, qualification counts/status,
+occupation status, distance when available and existing Application status. It
+does not receive Candidate name, email, phone, notes, credentials or documents.
+The explanation has no numeric score, never changes order or factors, and is
+labelled as AI-generated presentation assistance. A fingerprint marks persisted
+text stale when the authoritative factors change; the current fingerprint is
+reused to prevent repeated provider cost.
+
+AI is disabled unless `CARE_MATCH_AI_ENABLED=true`, and all request/mutation
+endpoints are server-side disabled in public-demo mode. Provider content is
+untrusted even with strict structured output. Documents are explicitly framed as
+data rather than instructions, tools/web search are disabled, and returned
+values are independently allow-listed and length/format validated. These controls
+reduce but do not eliminate prompt-injection risk.
+
+External-provider use transmits the selected document or minimal factor set
+outside CareMatch infrastructure. `store=false` is requested from the initial
+OpenAI adapter, but CareMatch does not claim Zero Data Retention, HIPAA,
+Australian Privacy Act or other compliance without verified account/deployment
+controls. The existing synthetic-data-only and malware-scanning/retention
+limitations continue to apply to real Candidate documents.
 
 ## 15. Open Product Decisions
 

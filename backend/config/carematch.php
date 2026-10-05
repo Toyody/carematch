@@ -1,6 +1,15 @@
 <?php
 
 return [
+    'ai' => [
+        'enabled' => filter_var(env('CARE_MATCH_AI_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'provider' => env('AI_PROVIDER', 'openai'),
+        'model' => env('AI_MODEL', ''),
+        'queue' => env('AI_QUEUE', 'ai'),
+        'max_receive_count' => (int) env('AI_MAX_RECEIVE_COUNT', 3),
+        'connect_timeout_seconds' => (int) env('AI_CONNECT_TIMEOUT_SECONDS', 10),
+        'timeout_seconds' => (int) env('AI_TIMEOUT_SECONDS', 90),
+    ],
     'compliance' => [
         'expiry_warning_days' => (int) env('COMPLIANCE_EXPIRY_WARNING_DAYS', 30),
         'expiry_digest' => [

@@ -22,6 +22,9 @@ services:
       CACHE_STORE: file
       QUEUE_CONNECTION: sync
       MAIL_MAILER: log
+      CARE_MATCH_AI_ENABLED: "true"
+      AI_PROVIDER: fake
+      AI_MODEL: deterministic-fake-v1
 
   frontend:
     command: ["/app/scripts/start-e2e.sh"]

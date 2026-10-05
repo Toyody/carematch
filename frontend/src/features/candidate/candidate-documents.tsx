@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { FormError } from "@/components/forms/form-error";
 import { ApiError } from "@/lib/api/client";
 import { isPublicDemo } from "@/lib/public-demo";
+import { CvExtractionReview } from "@/features/ai/cv-extraction-review";
 
 import {
   deleteCandidateDocument,
@@ -16,11 +17,15 @@ import {
 
 export function CandidateDocuments({
   candidateId,
+  candidate,
   mayManage,
+  onCandidateUpdated,
   organisationId,
 }: {
   candidateId: number;
+  candidate?: import("./api").Candidate;
   mayManage: boolean;
+  onCandidateUpdated?: (candidate: import("./api").Candidate) => void;
   organisationId: number;
 }) {
   const resultKey = `${organisationId}:${candidateId}`;
@@ -195,6 +200,14 @@ export function CandidateDocuments({
                   </button>
                 ) : null}
               </div>
+              {mayManage && !isPublicDemo && candidate && onCandidateUpdated ? (
+                <CvExtractionReview
+                  candidate={candidate}
+                  document={document}
+                  onApplied={onCandidateUpdated}
+                  organisationId={organisationId}
+                />
+              ) : null}
             </li>
           ))}
         </ul>

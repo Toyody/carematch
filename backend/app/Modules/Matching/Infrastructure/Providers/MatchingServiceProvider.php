@@ -3,7 +3,9 @@
 namespace App\Modules\Matching\Infrastructure\Providers;
 
 use App\Modules\Matching\Application\Contracts\CandidateMatchReadModel;
+use App\Modules\Matching\Application\Contracts\MatchExplanationSource;
 use App\Modules\Matching\Infrastructure\Persistence\PostgreSqlCandidateMatchReadModel;
+use App\Modules\Matching\Infrastructure\Persistence\PostgreSqlMatchExplanationSource;
 use App\Modules\Matching\Interfaces\Authorization\MatchingPolicy;
 use App\Modules\Organisation\Application\Data\TenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -15,6 +17,7 @@ final class MatchingServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(CandidateMatchReadModel::class, PostgreSqlCandidateMatchReadModel::class);
+        $this->app->bind(MatchExplanationSource::class, PostgreSqlMatchExplanationSource::class);
     }
 
     public function boot(MatchingPolicy $policy): void
