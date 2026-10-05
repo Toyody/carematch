@@ -12,12 +12,19 @@ final class CompliancePolicy
 
     public const string MANAGE_CATALOGUE = 'compliance.catalogue.manage';
 
+    public const string REQUEST_EXPIRY_DIGEST = 'compliance.expiry-digest.request';
+
     public function view(Authenticatable $user, TenantContext $tenant): bool
     {
         return $user->getAuthIdentifier() === $tenant->userId;
     }
 
     public function manageCatalogue(Authenticatable $user, TenantContext $tenant): bool
+    {
+        return $this->view($user, $tenant) && $tenant->role === OrganisationRole::Admin;
+    }
+
+    public function requestExpiryDigest(Authenticatable $user, TenantContext $tenant): bool
     {
         return $this->view($user, $tenant) && $tenant->role === OrganisationRole::Admin;
     }

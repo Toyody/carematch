@@ -3,6 +3,10 @@
 return [
     'compliance' => [
         'expiry_warning_days' => (int) env('COMPLIANCE_EXPIRY_WARNING_DAYS', 30),
+        'expiry_digest' => [
+            'queue' => env('COMPLIANCE_EXPIRY_DIGEST_QUEUE', 'compliance'),
+            'max_receive_count' => (int) env('COMPLIANCE_EXPIRY_DIGEST_MAX_RECEIVE_COUNT', 3),
+        ],
     ],
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
     'invitation_expiry_days' => (int) env('ORGANISATION_INVITATION_EXPIRY_DAYS', 7),

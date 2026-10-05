@@ -27,6 +27,7 @@ final class RejectPublicDemoOperation
     {
         return match ($operation) {
             'candidate-document-write' => 'Candidate document changes',
+            'expiry-digest' => 'Credential expiry digest delivery',
             'invitation-creation' => 'Invitation sending',
             'organisation-creation' => 'Organisation creation',
             'password-recovery' => 'Password recovery',

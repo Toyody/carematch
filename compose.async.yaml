@@ -1,0 +1,85 @@
+services:
+  postgres:
+    ports: !reset []
+
+  elasticmq:
+    image: softwaremill/elasticmq:1.7.1
+    profiles: [async]
+    volumes:
+      - ./docker/elasticmq.conf:/opt/elasticmq.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null 'http://127.0.0.1:9324/?Action=ListQueues&Version=2012-11-05'"]
+      start_period: 10s
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    environment:
+      APP_ENV: testing
+      APP_KEY: ${ASYNC_INTEGRATION_APP_KEY:?ASYNC_INTEGRATION_APP_KEY is required}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_async
+      DB_USERNAME: carematch
+      DB_PASSWORD: async_integration_only
+      QUEUE_CONNECTION: sqs
+      QUEUE_FAILED_DRIVER: "null"
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_DEFAULT_REGION: ap-southeast-2
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_PREFIX: http://elasticmq:9324/000000000000
+      SQS_QUEUE: compliance
+    depends_on:
+      elasticmq:
+        condition: service_healthy
+
+  worker:
+    profiles: [async]
+    build:
+      context: ./backend
+    working_dir: /app
+    command:
+      [
+        "php",
+        "artisan",
+        "queue:work",
+        "sqs",
+        "--queue=compliance",
+        "--tries=0",
+        "--timeout=60",
+        "--sleep=1",
+        "--max-time=3600",
+        "--memory=256",
+      ]
+    environment:
+      APP_ENV: local
+      APP_KEY: ${ASYNC_INTEGRATION_APP_KEY:?ASYNC_INTEGRATION_APP_KEY is required}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_async
+      DB_USERNAME: carematch
+      DB_PASSWORD: async_integration_only
+      CACHE_STORE: redis
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: sqs
+      QUEUE_FAILED_DRIVER: "null"
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_DEFAULT_REGION: ap-southeast-2
+      SQS_ENDPOINT: http://elasticmq:9324
+      SQS_PREFIX: http://elasticmq:9324/000000000000
+      SQS_QUEUE: compliance
+    volumes:
+      - ./backend:/app
+      - backend_vendor:/app/vendor
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticmq:
+        condition: service_healthy

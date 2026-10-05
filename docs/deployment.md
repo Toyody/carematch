@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Phase 6A prepares the repository for production but does not claim a live deployment. Phase 6B requires an authenticated AWS account, region, controlled DNS name and billable AWS resources. Phase 6C requires a real HTTPS smoke test, backup verification and operational checks.
+Phase 6A and Phase 8 prepare repository-side production definitions but do not claim a live deployment. `infra/terraform` has been formatted and validated only; it has not been planned against an account or applied. Phase 6B requires an authenticated AWS account, region, controlled DNS name and billable AWS resources. Phase 6C requires real HTTPS, queue, log, alarm, backup and restore verification.
 
 No command in the normal container startup path migrates, seeds or resets the database automatically.
 
@@ -19,7 +19,7 @@ https://<host>/
 
 Use an ACM certificate on the public ALB listener. Route 53 or an external DNS provider points the controlled hostname to the ALB. The backend target group checks `/up`; the public API smoke check uses `/api/v1/health`. `NEXT_PUBLIC_API_URL` is deliberately an empty string so browser API and Sanctum CSRF requests remain relative to the current HTTPS origin.
 
-The cost-conscious portfolio topology uses an internet-facing ALB and Fargate tasks in public subnets with public IPs, while task security groups permit inbound traffic only from the ALB security group. This avoids a NAT Gateway. RDS remains non-public in private database subnets. Tasks still need outbound internet access for ECR, CloudWatch, SSM/Secrets Manager and AWS APIs. One task per service and a Single-AZ RDS instance reduce cost but are not highly available.
+The cost-conscious portfolio topology uses an internet-facing ALB and one backend, frontend and worker Fargate task in public subnets with public IPs. Only HTTP tasks register with the ALB; the worker has no listener. This avoids a NAT Gateway. RDS and a one-node, non-HA ElastiCache Redis replication group remain non-public in private data subnets. This reduces cost but is not highly available.
 
 ## Production containers
 
@@ -75,7 +75,28 @@ Inject `APP_KEY`, database credentials and the demo password through ECS secrets
 
 ## Database, sessions and cache
 
-RDS PostgreSQL is the source of truth. Phase 7C requires PostGIS and its migration executes `CREATE EXTENSION IF NOT EXISTS postgis`; before Phase 6B deployment, verify PostgreSQL 18 compatibility, the available PostGIS version and the migration role's extension permission on the chosen RDS engine. Local and CI use PostgreSQL 18.6 with PostGIS 3.6. This does not claim that RDS compatibility has already been verified. The standard `sessions`, `cache` and `cache_locks` tables are deployed by migrations. Database cache gives authentication rate limits a shared store across backend tasks. Local and E2E stacks continue to use file cache, and queues remain synchronous.
+RDS PostgreSQL is the source of truth. Phase 7C requires PostGIS and its migration executes `CREATE EXTENSION IF NOT EXISTS postgis`; before Phase 6B deployment, verify PostgreSQL 18 compatibility, the available PostGIS version and the migration role's extension permission on the chosen RDS engine. Local and CI use PostgreSQL 18 with PostGIS 3.6. Production keeps `SESSION_DRIVER=database`; `CACHE_STORE=redis` supplies shared cache, authentication rate-limit state and locks without moving business truth or sessions into Redis. ElastiCache uses encryption at rest, TLS in transit and an auth token supplied through sensitive operator input/Secrets Manager. Local Compose uses a pinned, non-persistent Redis 8.2 service; E2E intentionally keeps its isolated file cache.
+
+## Queue and worker operations
+
+Production uses an encrypted SQS main queue and DLQ. The main queue enables
+20-second long polling, a 90-second visibility timeout and redrives after three
+receives. The worker command is:
+
+```text
+php artisan queue:work sqs --queue=compliance --tries=0 --timeout=60 --sleep=1 --max-time=3600 --memory=256
+```
+
+`--tries=0` leaves bounded dead-letter authority with SQS rather than Laravel's
+failed-job store; `QUEUE_FAILED_DRIVER=null` is intentional. ECS stops the
+single worker with a 120-second stop timeout. Failed messages contain only an
+internal digest request ID, so the DLQ does not become a PII or token store.
+
+The developer/CI integration uses `softwaremill/elasticmq:1.7.1` through
+`compose.async.yaml`, not the Laravel database queue. `make test-async` proves
+producer → SQS-compatible queue → worker success, Redis cache/locks, repeated
+receives and actual DLQ redrive. Normal `make up` does not start ElasticMQ or a
+worker.
 
 Run migrations as a one-off ECS task using the exact backend image being deployed:
 
@@ -122,12 +143,50 @@ Create a GitHub Environment (normally `production`) with approval protection whe
 - `ECR_BACKEND_REPOSITORY`, `ECR_FRONTEND_REPOSITORY`
 - `ECS_CLUSTER`
 - `ECS_BACKEND_SERVICE`, `ECS_FRONTEND_SERVICE`
-- `ECS_BACKEND_TASK_FAMILY`, `ECS_FRONTEND_TASK_FAMILY`
+- `ECS_WORKER_SERVICE`
+- `ECS_BACKEND_TASK_FAMILY`, `ECS_FRONTEND_TASK_FAMILY`, `ECS_WORKER_TASK_FAMILY`
 - `ECS_TASK_SUBNETS`, `ECS_TASK_SECURITY_GROUPS` as comma-separated IDs suitable for the AWS CLI network configuration
 
 The AWS role trust policy must restrict `token.actions.githubusercontent.com` to this repository and protected environment. Its least-privilege permissions cover ECR pushes, ECS task-definition registration, one-off task execution/inspection, service updates and `iam:PassRole` only for the ECS roles.
 
-Run `.github/workflows/deploy-production.yml` manually with the region and exact HTTPS URL. It fails visibly on missing inputs, OIDC authentication, image push, migration, ECS stabilization or HTTPS smoke failure. It assumes bootstrap-created ECS task definitions already contain runtime environment variables, secrets, task/execution roles, CloudWatch `awslogs` configuration, CPU/memory, port mappings and health settings.
+Run `.github/workflows/deploy-production.yml` manually with the region and exact HTTPS URL. It fails visibly on missing inputs, OIDC authentication, image push, migration, ECS stabilization or HTTPS smoke failure. It deploys the worker from the same immutable backend SHA image with its pre-provisioned command and no ALB registration. It assumes Terraform-created task definitions already contain runtime environment variables, secrets, task/execution roles, CloudWatch `awslogs` configuration, CPU/memory, port mappings and health settings.
+
+## Terraform and operational monitoring
+
+`infra/terraform` is a pragmatic single root, not a reusable platform framework.
+It defines the VPC/subnets/security groups, ALB, ECR, ECS HTTP and worker
+services, Single-AZ RDS, private candidate-document S3 bucket, private one-node
+ElastiCache, encrypted SQS/DLQ, log groups, task/execution roles, repository- and
+environment-restricted GitHub OIDC deploy role, alarms and an operations
+dashboard. ACM and DNS ownership are inputs. The S3 backend is deliberately
+partial; Phase 6B supplies environment-specific state bucket/key/region and
+locking configuration. State, plans and populated tfvars are ignored.
+
+Validation is offline with respect to AWS resources:
+
+```bash
+make test-terraform
+```
+
+This runs Terraform 1.14.6 `fmt -check`, `init -backend=false` and `validate`.
+It does not run a credentialed plan or apply. The alarms cover ECS CPU/memory,
+ALB-generated and backend-target 5xx, unhealthy backend targets, SQS backlog/age, non-empty DLQ, RDS CPU/free
+storage and Redis evictions. The dashboard groups ALB, ECS, queue/DLQ, RDS and
+Redis signals. An optional SNS action ARN avoids hard-coded personal delivery;
+Phase 6B/6C must configure and prove real alarm delivery.
+
+`make test-performance` runs pinned k6 2.3.0 against a disposable, explicitly
+guarded synthetic dataset. Three virtual users exercise health, Dashboard,
+Analytics and Matching reads for ten seconds. It reports failure rate,
+throughput and latency percentiles with only broad failure/check thresholds;
+the result is regression smoke evidence, never a production SLA.
+
+The 2026-10-05 local Docker validation completed 92 HTTP requests and 20
+iterations with 0% request failures and 92/92 successful checks. Observed
+throughput was 8.34 requests/second, with a 335 ms median and 518 ms p95 request
+duration. These Apple Silicon Docker Desktop results describe only this small
+synthetic smoke workload; they are not capacity evidence and must not be
+extrapolated to production.
 
 ## Logging, health and operations
 

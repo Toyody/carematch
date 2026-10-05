@@ -148,6 +148,20 @@ erDiagram
         jsonb metadata
         timestamptz occurred_at
     }
+    COMPLIANCE_EXPIRY_DIGEST_REQUESTS {
+        bigint id PK
+        bigint organisation_id FK
+        bigint requested_by_user_id FK
+        string idempotency_key_hash UK
+        string request_fingerprint
+        string status
+        integer expired_count
+        integer expiring_count
+        string failure_code
+        timestamptz queued_at
+        timestamptz sent_at
+        timestamptz failed_at
+    }
 
     USERS ||--o{ ORGANISATION_MEMBERSHIPS : has
     ORGANISATIONS ||--o{ ORGANISATION_MEMBERSHIPS : contains
@@ -171,6 +185,8 @@ erDiagram
     QUALIFICATION_DEFINITIONS ||--o{ JOB_QUALIFICATION_REQUIREMENTS : specifies
     ORGANISATIONS ||--o{ AUDIT_EVENTS : owns
     ORGANISATION_MEMBERSHIPS ||--o{ AUDIT_EVENTS : acts
+    ORGANISATIONS ||--o{ COMPLIANCE_EXPIRY_DIGEST_REQUESTS : owns
+    USERS ||--o{ COMPLIANCE_EXPIRY_DIGEST_REQUESTS : requests
 ```
 
 ## Integrity notes
@@ -205,6 +221,9 @@ erDiagram
 - Candidate and Job latitude/longitude pairs are range-checked and drive stored
   generated PostGIS geography points in SRID 4326. Candidate geography has a
   GiST index for radius matching; derived match rankings are not persisted.
+- Expiry digest requests uniquely scope the hashed client idempotency key to
+  Organisation and requester. Status/count/timestamp CHECK constraints protect
+  the small lifecycle; queue payloads contain only this table's internal ID.
 
 See [database design](../database-design.md) for exact constraints, indexes and
 transaction behaviour.

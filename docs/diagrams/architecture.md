@@ -1,7 +1,8 @@
 # CareMatch Architecture Overview
 
-This diagram shows the currently implemented local and CI architecture. Public
-HTTPS hosting and AWS infrastructure remain Phase 6 work.
+This diagram shows the currently implemented local and CI architecture plus the
+validated repository-side Phase 8 production target. Live HTTPS/AWS provisioning
+and operational evidence remain Phase 6B/6C work.
 
 ```mermaid
 flowchart TB
@@ -28,6 +29,10 @@ flowchart TB
 
     postgres[(PostgreSQL 18 + PostGIS 3.6)]
     privateStorage[(Private Candidate document storage)]
+    redis[(Redis shared cache and locks)]
+    sqs[[SQS compliance queue]]
+    worker[Laravel queue worker]
+    dlq[[SQS dead-letter queue]]
     ci[GitHub Actions]
     quality[PHPUnit · Vitest · PHPStan · Playwright · OpenAPI lint]
 
@@ -55,6 +60,12 @@ flowchart TB
     dashboard -->|bounded tenant-scoped aggregation| postgres
     analytics -->|UTC cohort, funnel, daily series and medians| postgres
     candidate -->|authorised upload and download| privateStorage
+    http -->|digest request ID after commit| sqs
+    sqs --> worker
+    worker -->|current trusted state and aggregate counts| postgres
+    worker -->|bounded failures after 3 receives| dlq
+    http -->|shared cache and rate limits| redis
+    worker -->|distributed overlap lock| redis
 
     ci --> quality
     quality -. verifies .-> frontend
@@ -91,6 +102,10 @@ flowchart TB
 - Matching owns no persisted business records. Its two-query PostGIS projection
   ranks tenant Candidates by qualification, exact occupation, distance and a
   stable ID tie-breaker, and returns machine-readable factors for human review.
+- Phase 8 queues only a Compliance expiry-digest request ID. PostgreSQL owns
+  durable idempotency and delivery state; Redis supplies temporary coordination;
+  SQS redrive owns dead-letter handling. The worker uses the backend image and
+  never places invitation/reset tokens or Candidate details in a queue message.
 
 See [the detailed architecture](../architecture.md) and
 [the entity-relationship diagram](entity-relationship.md).

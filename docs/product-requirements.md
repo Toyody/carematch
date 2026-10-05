@@ -393,15 +393,18 @@ unverified until Phase 6B/6C deployment and operational checks are complete.
 ## 14. Non-MVP Features
 
 - Custom roles and permission builders
-- Compliance management
-- Qualifications and certifications
 - Fuzzy, semantic or AI matching
 - Automated geocoding and occupation taxonomies
-- Qualification expiry notifications
-- Redis and SQS processing
 - AI CV parsing and match explanations
-- Advanced observability
 - Microservices and distributed architecture
+
+Phase 8 adds one bounded asynchronous product operation: an active Organisation
+Admin may request a credential-expiry digest. The request is durably idempotent,
+returns `202`, and delivers only expired/expiring aggregate counts plus a link to
+the authorised Compliance view. It contains no Candidate identity, credential
+number, notes, document information or legal-compliance claim. Invitation and
+password-reset token delivery remains synchronous so raw security tokens never
+enter SQS. Public-demo deployments reject the digest request server-side.
 
 ## 15. Open Product Decisions
 

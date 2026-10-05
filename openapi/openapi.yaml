@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CareMatch API
-  version: 0.13.0
+  version: 0.14.0
   description: |
     REST API for the CareMatch healthcare recruitment platform.
 
@@ -28,6 +28,9 @@ info:
     UTC Application cohorts and authoritative status history. It does not expose
     Candidate identities, employee-performance metrics, demographic inference,
     predictive analytics, or AI output.
+    Phase 8 adds an Admin-requested asynchronous Compliance expiry digest. Its
+    SQS payload contains only an internal request identifier; delivery status
+    is durable and tenant-scoped, while the email contains aggregate counts only.
 
     Deployments configured as the public portfolio demo return `403` for
     registration, Organisation creation, password recovery, invitation creation,
@@ -1590,6 +1593,52 @@ paths:
         "200": { description: Tenant-scoped expiry records, content: { application/json: { schema: { $ref: "#/components/schemas/QualificationExpiryCollection" } } } }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/TenantNotFound" }
+  /organisations/{organisation}/compliance/expiry-digests:
+    parameters: [{ $ref: "#/components/parameters/OrganisationId" }]
+    post:
+      security: [{ StatefulSession: [] }]
+      operationId: requestComplianceExpiryDigest
+      summary: Request an asynchronous credential-expiry digest
+      description: |
+        Admin-only operation. Creates or reuses a durable request scoped by the
+        authenticated user, Organisation, operation, and hashed Idempotency-Key,
+        then returns without waiting for delivery. The digest contains aggregate
+        expired and expiring counts and is not legal or regulatory certification.
+      tags: [Compliance]
+      parameters:
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+        - { $ref: "#/components/parameters/XsrfToken" }
+      responses:
+        "202":
+          description: The durable digest request was accepted or idempotently reused.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExpiryDigestRequestResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
+        "409": { $ref: "#/components/responses/IdempotencyConflict" }
+        "419": { $ref: "#/components/responses/CsrfTokenMismatch" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /organisations/{organisation}/compliance/expiry-digests/{digestRequest}:
+    parameters:
+      - { $ref: "#/components/parameters/OrganisationId" }
+      - { $ref: "#/components/parameters/ExpiryDigestRequestId" }
+    get:
+      security: [{ StatefulSession: [] }]
+      operationId: getComplianceExpiryDigestRequest
+      summary: Read an asynchronous expiry-digest request state
+      description: Admin-only, tenant-scoped status. Raw delivery errors and recipient details are never exposed.
+      tags: [Compliance]
+      responses:
+        "200":
+          description: Current durable request and delivery state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExpiryDigestRequestResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/TenantNotFound" }
   /organisations/{organisation}/audit-events:
     parameters:
       - { $ref: "#/components/parameters/OrganisationId" }
@@ -1713,6 +1762,24 @@ components:
       in: path
       required: true
       schema: { type: integer, format: int64, minimum: 1 }
+    ExpiryDigestRequestId:
+      name: digestRequest
+      in: path
+      required: true
+      description: Digest request identifier resolved only within the trusted route Organisation.
+      schema: { type: integer, format: int64, minimum: 1 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Printable ASCII key (1–128 characters). The server stores only its
+        SHA-256 hash and scopes reuse to this user, Organisation, and operation.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[!-~]+$'
     XsrfToken:
       name: X-XSRF-TOKEN
       in: header
@@ -1854,6 +1921,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/MembershipConflictError"
+    IdempotencyConflict:
+      description: The Idempotency-Key was reused for semantically different input.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/IdempotencyConflictError"
     CsrfTokenMismatch:
       description: The CSRF token is missing, invalid, or no longer matches the session.
       content:
@@ -1998,6 +2071,36 @@ components:
               qualification_name: { type: string }
               expires_on: { type: string, format: date }
               status: { type: string, enum: [expired, expiring] }
+    ExpiryDigestRequest:
+      type: object
+      additionalProperties: false
+      required: [id, status, expired_count, expiring_count, failure_code, queued_at, processing_started_at, sent_at, failed_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        status: { type: string, enum: [queued, processing, sent, failed] }
+        expired_count: { type: [integer, "null"], minimum: 0 }
+        expiring_count: { type: [integer, "null"], minimum: 0 }
+        failure_code:
+          type: [string, "null"]
+          description: Safe machine-readable failure category; never a raw exception or provider response.
+        queued_at: { type: string, format: date-time }
+        processing_started_at: { type: [string, "null"], format: date-time }
+        sent_at: { type: [string, "null"], format: date-time }
+        failed_at: { type: [string, "null"], format: date-time }
+    ExpiryDigestRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/ExpiryDigestRequest" }
+    IdempotencyConflictError:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          const: The Idempotency-Key has already been used for a different request.
     HealthResponse:
       type: object
       additionalProperties: false

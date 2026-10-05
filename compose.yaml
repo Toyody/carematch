@@ -19,6 +19,15 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:8.2.10-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     build:
       context: ./backend
@@ -28,8 +37,13 @@ services:
       - backend_vendor:/app/vendor
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      CACHE_STORE: redis
+      REDIS_HOST: redis
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8000/up"]

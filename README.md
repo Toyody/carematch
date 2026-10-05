@@ -14,6 +14,7 @@ CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It dem
 - Recruitment workflows with guarded status transitions, immutable history, and concurrency protection.
 - Private candidate-document storage and authorised download endpoints.
 - A typed Next.js client, accessible responsive UI, OpenAPI contract, and layered automated tests including a critical Playwright flow.
+- A real SQS-backed Compliance digest worker, Redis coordination, DLQ integration tests, and repository-side Terraform/CloudWatch definitions.
 
 ## Core features
 
@@ -27,6 +28,7 @@ CareMatch is a portfolio-ready, multi-tenant healthcare recruitment SaaS. It dem
 - An Admin-only, tenant-scoped audit trail for meaningful business mutations.
 - An organisation dashboard with status breakdowns and recent activity.
 - UTC date-range recruitment analytics with reached-stage funnels, current cohort status, daily volume, median time-to-stage and bounded Job aggregates.
+- Admin-requested asynchronous credential-expiry digests containing aggregate counts only.
 
 ## Portfolio screens
 
@@ -58,6 +60,8 @@ Laravel REST API
   └── Analytics
         │
         ├── PostgreSQL 18 + PostGIS 3.6
+        ├── Redis cache, rate limits and distributed locks
+        ├── SQS → Laravel worker → DLQ
         └── Private document storage
 ```
 
@@ -100,6 +104,7 @@ Analytics is separate from the lightweight Dashboard. It reports on Applications
 - PHPUnit, PHPStan level 8, Laravel Pint
 - Vitest, Testing Library, ESLint, Prettier
 - Playwright for the critical recruitment browser flow
+- Redis 8.2, Amazon SQS, Laravel queue workers, Terraform 1.14 and k6 2.3
 - OpenAPI 3.1 with Redocly linting
 
 ## Testing and quality checks
@@ -121,6 +126,19 @@ Validate the production images and local same-origin routing:
 ```bash
 make test-production-images
 ```
+
+Run the disposable real Redis/SQS-compatible worker integration, repository-side
+Terraform validation, and short synthetic performance smoke separately:
+
+```bash
+make test-async
+make test-terraform
+make test-performance
+```
+
+`make test-performance` uses three virtual users for ten seconds against health,
+Dashboard, Analytics and Matching. Its broad error/check thresholds catch severe
+regressions; laptop or CI timings are not a production SLA.
 
 The checks cover backend and frontend tests, static analysis, linting and formatting, dependency audits, production frontend build, OpenAPI linting, PostgreSQL-backed constraints, tenant-isolation scenarios, and the critical end-to-end flow.
 
@@ -162,6 +180,9 @@ make down        # Stop it
 make test        # Backend and frontend tests
 make check       # Full validation suite
 make test-e2e    # Isolated Playwright stack and critical flow
+make test-async  # Redis + SQS producer/worker/retry/DLQ integration
+make test-terraform # Terraform fmt/init-without-backend/validate
+make test-performance # Disposable synthetic k6 smoke
 make demo-seed   # Seed deterministic synthetic portfolio data
 ```
 
@@ -184,8 +205,16 @@ openapi/            OpenAPI 3.1 contract and lint configuration
 docs/               Product, architecture, database, diagrams, and screenshots
 compose.yaml        Local application stack
 compose.e2e.yaml    Isolated browser-test stack
+compose.async.yaml  Optional Redis/SQS worker integration overlay
+infra/terraform/    Unapplied production-target AWS definitions
+performance/        Synthetic k6 smoke workload
 ```
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 5 and Phase 7 is implemented. Matching is deterministic, tenant-scoped and PostGIS-backed; Analytics is cohort-based and read-only; Audit events remain privacy-limited and append-only. Phase 6A repository-side production readiness is implemented, but no AWS deployment or RDS/PostGIS compatibility verification is claimed. HTTPS/domain configuration, live managed infrastructure, deployed secrets and CloudWatch verification, and backup/restore drills remain Phase 6B/6C work.
+The local and CI-tested portfolio scope through Phase 8 is implemented. Phase 8
+means repository-side readiness: no Terraform was applied and no live AWS
+resources or CloudWatch alarms were verified. HTTPS/domain configuration, live
+managed infrastructure, deployed secrets, RDS/PostGIS compatibility, alarm
+delivery, and backup/restore drills remain Phase 6B/6C work. Phase 9 remains
+unimplemented.
