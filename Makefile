@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := docker compose
 
-.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e test-production-images lint analyse format build audit openapi-lint check
+.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e test-production-images test-async test-terraform test-performance lint analyse format build audit openapi-lint check
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -48,7 +48,7 @@ demo-seed:
 test: test-backend test-frontend
 
 test-backend:
-	$(DOCKER_COMPOSE) run --rm backend php artisan test
+	$(DOCKER_COMPOSE) run --rm -e CACHE_STORE=array backend php artisan test
 
 test-frontend:
 	$(DOCKER_COMPOSE) run --rm frontend npm test
@@ -58,6 +58,17 @@ test-e2e:
 
 test-production-images:
 	./scripts/validate-production-images.sh
+
+test-async:
+	./scripts/test-async-infrastructure.sh
+
+test-terraform:
+	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 fmt -check -recursive
+	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 init -backend=false
+	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 validate
+
+test-performance:
+	./scripts/run-performance-smoke.sh
 
 lint:
 	$(DOCKER_COMPOSE) run --rm backend composer lint

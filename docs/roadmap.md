@@ -268,14 +268,19 @@ Exit criteria:
 
 Introduced only for measured product or operational requirements:
 
-- [ ] Redis
-- [ ] SQS
-- [ ] Background workers
-- [ ] Retry and dead-letter handling
-- [ ] Idempotency
-- [ ] Terraform
-- [ ] Enhanced CloudWatch monitoring
-- [ ] Performance testing
+- [x] Redis
+- [x] SQS
+- [x] Background workers
+- [x] Retry and dead-letter handling
+- [x] Idempotency
+- [x] Terraform
+- [x] Enhanced CloudWatch monitoring
+- [x] Performance testing
+
+Phase 8 completion means repository-side implementation and disposable local/CI
+evidence. Terraform has not been applied and live AWS queue, worker, cache,
+CloudWatch, alarm-delivery and performance behaviour remain Phase 6B/6C
+verification. Phase 9 remains unimplemented.
 
 ## Phase 9 — AI-assisted Product Features
 

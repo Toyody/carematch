@@ -8,7 +8,9 @@ RUN apt-get update \
         libpq-dev \
         libzip-dev \
         unzip \
-    && docker-php-ext-install mbstring pdo_pgsql zip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && docker-php-ext-install mbstring pcntl pdo_pgsql zip \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2.10 /usr/bin/composer /usr/local/bin/composer

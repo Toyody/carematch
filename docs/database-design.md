@@ -372,6 +372,26 @@ a positive subject ID and object metadata. A PostgreSQL trigger rejects UPDATE
 and DELETE while allowing migration rollback to drop the table. No application
 update/delete API exists.
 
+### `compliance_expiry_digest_requests`
+
+| Column | Notes |
+|---|---|
+| `id` | Internal queue payload identifier |
+| `organisation_id` | Tenant owner; restricted FK to `organisations` |
+| `requested_by_user_id` | Authenticated requester; restricted FK to `users` |
+| `idempotency_key_hash` | SHA-256 digest, never the raw client key |
+| `request_fingerprint` | SHA-256 semantic operation fingerprint |
+| `status` | `queued`, `processing`, `sent` or `failed` |
+| `expired_count`, `expiring_count` | Nullable non-negative aggregate result |
+| `failure_code` | Nullable safe category, never raw exception/provider detail |
+| lifecycle timestamps | Queue, processing, sent and failed operational times |
+
+`UNIQUE (organisation_id, requested_by_user_id, idempotency_key_hash)` is the
+durable double-submission boundary. PostgreSQL checks enforce the status set,
+non-negative counts and coherent sent/failed state shapes. Indexes support
+tenant-scoped reads and operational status inspection. No Candidate identity,
+recipient email, credential details or message body is persisted for delivery.
+
 ## 5. Deletion and Retention
 
 - Applications and status history are not physically deleted through normal user operations.

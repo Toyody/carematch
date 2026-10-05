@@ -1,5 +1,7 @@
 <?php
 
+$sqsEndpoint = env('SQS_ENDPOINT');
+
 return [
 
     /*
@@ -61,7 +63,8 @@ return [
             'queue' => env('SQS_QUEUE', 'default'),
             'suffix' => env('SQS_SUFFIX'),
             'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-            'after_commit' => false,
+            'after_commit' => true,
+            ...is_string($sqsEndpoint) && $sqsEndpoint !== '' ? ['endpoint' => $sqsEndpoint] : [],
         ],
 
         'redis' => [
@@ -121,7 +124,7 @@ return [
     */
 
     'failed' => [
-        'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
+        'driver' => env('QUEUE_FAILED_DRIVER', 'null'),
         'database' => env('DB_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
     ],

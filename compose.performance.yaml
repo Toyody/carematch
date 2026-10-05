@@ -1,0 +1,43 @@
+services:
+  postgres:
+    ports: !reset []
+
+  backend:
+    ports: !reset []
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+    environment:
+      APP_ENV: performance
+      APP_DEBUG: "false"
+      APP_KEY: ${PERFORMANCE_APP_KEY:?PERFORMANCE_APP_KEY is required}
+      APP_URL: http://backend:8000
+      FRONTEND_URL: http://backend:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_performance
+      DB_USERNAME: carematch
+      DB_PASSWORD: performance_only
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: "false"
+      SANCTUM_STATEFUL_DOMAINS: backend:8000
+      CACHE_STORE: redis
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      CARE_MATCH_DEMO_DATA: "true"
+      CARE_MATCH_DEMO_EMAIL: performance.admin@example.test
+      CARE_MATCH_DEMO_PASSWORD: ${PERFORMANCE_PASSWORD:?PERFORMANCE_PASSWORD is required}
+      CARE_MATCH_PUBLIC_DEMO: "false"
+
+  k6:
+    image: grafana/k6:2.3.0
+    profiles: [performance]
+    environment:
+      BASE_URL: http://backend:8000
+      PERFORMANCE_EMAIL: performance.admin@example.test
+      PERFORMANCE_PASSWORD: ${PERFORMANCE_PASSWORD:?PERFORMANCE_PASSWORD is required}
+    volumes:
+      - ./performance:/scripts:ro
+    depends_on:
+      backend:
+        condition: service_healthy

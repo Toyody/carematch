@@ -74,6 +74,19 @@ final class PublicDemoProtectionTest extends TestCase
         $this->actingAs($user, 'web')->deleteJson("{$base}/{$document->getKey()}")->assertForbidden();
     }
 
+    public function test_compliance_expiry_digest_delivery_is_disabled(): void
+    {
+        [$user, $organisation] = $this->tenant();
+
+        $this->actingAs($user, 'web')->postJson(
+            "/api/v1/organisations/{$organisation->getKey()}/compliance/expiry-digests",
+            [],
+            ['Idempotency-Key' => 'public-demo-digest'],
+        )->assertForbidden();
+
+        $this->assertDatabaseCount('compliance_expiry_digest_requests', 0);
+    }
+
     public function test_restrictions_are_inactive_outside_public_demo_mode(): void
     {
         config()->set('carematch.portfolio_demo.public_mode', false);

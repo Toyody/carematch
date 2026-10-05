@@ -2,7 +2,7 @@
 
 ## 1. Architectural Style
 
-CareMatch is a modular monolith using pragmatic Clean Architecture. The local and CI system runs as one Laravel backend, one Next.js frontend and one PostgreSQL database. Phase 6A adds repository-side production readiness; actual AWS deployment and operational verification remain Phase 6B/6C work.
+CareMatch is a modular monolith using pragmatic Clean Architecture. The local and CI system runs as one Laravel backend, one Next.js frontend, PostgreSQL and a small Redis cache/lock service. Phase 8 adds an optional local SQS-compatible integration profile and repository-side AWS definitions; actual AWS deployment and operational verification remain Phase 6B/6C work.
 
 The architecture protects meaningful business rules, tenant isolation and data integrity while preserving Laravel conventions and avoiding ceremony. Microservices, Kubernetes, Kafka, GraphQL, CQRS and event sourcing are not part of the MVP architecture.
 
@@ -54,7 +54,7 @@ backend/app/
 
 Laravel bootstrap, shared framework configuration and genuinely cross-cutting providers may remain in conventional Laravel locations. A generic `Shared` or `Common` module must not become a dumping ground.
 
-Phase 7A introduces a real Compliance module because it owns the shared Organisation qualification catalogue, date-based expiry semantics and deterministic Candidate/Job requirement evaluator. Candidate credentials remain owned by Candidate and Job requirements remain owned by Recruitment. Their Infrastructure adapters compose persisted data through focused Compliance Application contracts; Application and Domain code do not import another module's Eloquent models. Asynchronous messaging and AI remain future concerns and must not be represented by empty modules.
+Phase 7A introduces a real Compliance module because it owns the shared Organisation qualification catalogue, date-based expiry semantics and deterministic Candidate/Job requirement evaluator. Candidate credentials remain owned by Candidate and Job requirements remain owned by Recruitment. Their Infrastructure adapters compose persisted data through focused Compliance Application contracts; Application and Domain code do not import another module's Eloquent models.
 
 Phase 7B introduces Audit as a real module. It owns the structured recording
 contract, append-only persistence and Admin-only tenant read API. Business
@@ -164,7 +164,9 @@ Contains controllers, Form Requests, API Resources, routes and HTTP mapping. Con
 - A module does not use another module's internal Eloquent model as an informal API.
 - Cross-module database foreign keys are allowed when they protect integrity.
 - Direct application-service calls are preferred for simple synchronous collaboration.
-- Domain events, queues and messaging are not required for MVP workflows.
+- Synchronous calls remain the default. Phase 8 uses one focused dispatcher port
+  for the concrete Compliance expiry-digest workload; it does not introduce a
+  generic message bus, command bus or event framework.
 
 ## 6. Tenant Resolution and Isolation
 
@@ -356,6 +358,46 @@ Laravel filesystem and Eloquent implementations remain in Candidate
 Infrastructure; multipart requests, Policies, Resources and attachment responses
 remain in Interfaces. No separate Document module or mirrored Domain entity is
 introduced because document metadata has no independent Domain behaviour.
+
+### Phase 8 asynchronous boundary
+
+The Admin-only expiry-digest API first inserts or reuses a PostgreSQL request
+record inside the business transaction. A unique constraint scopes the SHA-256
+Idempotency-Key hash to Organisation and requesting user. Only a primitive
+request ID is dispatched after commit. A rollback therefore cannot produce a
+job for a missing request. There remains a narrow database-commit-to-SQS-send
+crash gap; a transactional outbox is deliberately deferred until delivery
+volume justifies it.
+
+The Laravel worker uses the same immutable backend image and loads current
+Organisation, requester eligibility, recipient email and qualification counts
+from PostgreSQL. The SQS payload contains no email, Candidate identity,
+credential details, document keys or tokens. Redis is not a business source of
+truth: it provides shared cache/rate-limit state and a `WithoutOverlapping`
+execution lock. Database sessions remain in PostgreSQL.
+
+If the process stops after the request transaction commits but before SQS
+accepts the message, a client retry with the same Idempotency-Key reloads the
+same queued request and dispatches its request ID again. There is no autonomous
+reconciler in Phase 8. More than one physical message may therefore exist, but
+the PostgreSQL unique constraint still permits only one logical operation and
+the worker's overlap lock plus persisted terminal state make duplicates safe.
+The job deliberately does not use a long-lived unique-dispatch lock because a
+process failure after acquiring that lock but before the SQS send could block
+this recovery path.
+
+SQS redrive is authoritative: the worker uses `--tries=0`, a 60-second job
+timeout, a 90-second production visibility timeout, bounded 2/10-second job
+backoff and `maxReceiveCount=3`. Transient delivery failures are released for
+redelivery; permanent recipient ineligibility is recorded without retry; sent
+or failed work safely no-ops. Laravel's failed-job driver is `null` so it does
+not compete with the SQS DLQ.
+
+Request creation and logical completion are idempotent, but email is an
+external side effect. A crash after the mail provider accepts a message and
+before `sent` is committed can result in repeat delivery. The honest guarantee
+is retryable at-least-once transport in that narrow window, not exactly-once
+email.
 
 ## 9. API Conventions
 

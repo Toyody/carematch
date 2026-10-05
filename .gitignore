@@ -27,3 +27,11 @@ frontend/test-results/
 
 # Local scratch files
 .codex-local/
+
+# Terraform local state and provider data
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example

@@ -16,6 +16,15 @@ services:
     volumes:
       - production_validation_postgres:/var/lib/postgresql
 
+  redis:
+    image: redis:8.2.10-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
   backend:
     build:
       context: ./backend
@@ -38,7 +47,9 @@ services:
       SESSION_HTTP_ONLY: "true"
       SESSION_SAME_SITE: lax
       SANCTUM_STATEFUL_DOMAINS: localhost:8080
-      CACHE_STORE: database
+      CACHE_STORE: redis
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
       QUEUE_CONNECTION: sync
       LOG_CHANNEL: stderr
       LOG_LEVEL: info
@@ -47,6 +58,8 @@ services:
       CARE_MATCH_PUBLIC_DEMO: "true"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   frontend:
