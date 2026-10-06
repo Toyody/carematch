@@ -1,0 +1,63 @@
+services:
+  postgres:
+    ports: !reset []
+
+  backend:
+    ports: !reset []
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: ${STORAGE_INTEGRATION_APP_KEY:?STORAGE_INTEGRATION_APP_KEY is required}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_storage
+      DB_USERNAME: carematch
+      DB_PASSWORD: storage_only
+      CACHE_STORE: array
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      CANDIDATE_DOCUMENTS_DISK: candidate_documents_s3
+      AWS_ACCESS_KEY_ID: synthetic-storage-access
+      AWS_SECRET_ACCESS_KEY: synthetic-storage-secret
+      AWS_DEFAULT_REGION: ap-southeast-2
+      AWS_CANDIDATE_DOCUMENTS_BUCKET: carematch-candidate-documents
+      AWS_CANDIDATE_DOCUMENTS_PREFIX: candidate-documents
+      AWS_CANDIDATE_DOCUMENTS_ENDPOINT: ${STORAGE_ENDPOINT:-http://s3:8333}
+      AWS_CANDIDATE_DOCUMENTS_USE_PATH_STYLE_ENDPOINT: "true"
+      AWS_CANDIDATE_DOCUMENTS_CONNECT_TIMEOUT: "1"
+      AWS_CANDIDATE_DOCUMENTS_TIMEOUT: "2"
+      RUN_STORAGE_INTEGRATION: "true"
+    depends_on:
+      s3:
+        condition: service_healthy
+
+  s3:
+    image: chrislusf/seaweedfs:4.48
+    profiles: [storage]
+    command:
+      [
+        "server",
+        "-s3",
+        "-dir=/data",
+        "-s3.port=8333",
+        "-s3.config=/etc/seaweedfs/s3.json",
+        "-master.volumeSizeLimitMB=64",
+      ]
+    volumes:
+      - storage_s3_data:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9333/cluster/status"]
+      start_period: 10s
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  storage_s3_data:
+
+networks:
+  default:
+    internal: true

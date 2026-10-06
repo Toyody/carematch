@@ -54,7 +54,7 @@ resource "aws_elasticache_replication_group" "redis" {
 }
 
 resource "aws_s3_bucket" "candidate_documents" {
-  bucket_prefix = "${local.name}-candidate-documents-"
+  bucket_prefix = "${local.name}-candidates-"
   force_destroy = var.candidate_documents_force_destroy
 
   lifecycle {

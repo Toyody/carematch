@@ -1,6 +1,6 @@
 DOCKER_COMPOSE := docker compose
 
-.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e test-production-images test-async test-ai-provider test-terraform test-performance lint analyse format build audit openapi-lint check
+.PHONY: setup up down logs ps shell-backend shell-frontend psql migrate demo-seed test test-backend test-frontend test-e2e test-production-images test-async test-ai-provider test-backup-restore test-rollback test-storage test-failures test-terraform test-performance deployment-consistency predeploy-check lint analyse format build audit openapi-lint check
 
 setup:
 	@test -f .env || cp .env.example .env
@@ -69,10 +69,23 @@ test-ai-provider:
 	@test -n "$${OPENAI_API_KEY:-}" || (echo "OPENAI_API_KEY is required." >&2; exit 1)
 	$(DOCKER_COMPOSE) run --rm -e CARE_MATCH_AI_ENABLED -e AI_PROVIDER -e AI_MODEL -e OPENAI_API_KEY backend php artisan ai:provider-smoke
 
+test-backup-restore:
+	./scripts/test-backup-restore.sh
+
+test-rollback:
+	./scripts/test-rollback-compatibility.sh
+
+test-storage:
+	./scripts/test-s3-storage.sh
+
+test-failures:
+	./scripts/test-dependency-recovery.sh
+
 test-terraform:
 	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 fmt -check -recursive
 	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 init -backend=false
 	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 validate
+	docker run --rm -v "$(CURDIR)/infra/terraform:/workspace" -w /workspace hashicorp/terraform:1.14.6 test
 
 test-performance:
 	./scripts/run-performance-smoke.sh
@@ -100,5 +113,10 @@ audit:
 
 openapi-lint:
 	docker run --rm -v "$(CURDIR)/openapi:/spec" redocly/cli:2.47.0 lint --config /spec/redocly.yaml /spec/openapi.yaml
+
+deployment-consistency:
+	./scripts/check-deployment-consistency.sh
+
+predeploy-check: deployment-consistency test-terraform openapi-lint test-production-images
 
 check: lint analyse test build audit openapi-lint

@@ -1,0 +1,46 @@
+name: carematch-rollback-rehearsal
+
+services:
+  postgres:
+    image: postgis/postgis:18-3.6
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: carematch_rollback
+      POSTGRES_USER: carematch
+      POSTGRES_PASSWORD: rollback_only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U carematch -d carematch_rollback"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - rollback_postgres_data:/var/lib/postgresql
+
+  backend:
+    image: ${ROLLBACK_BACKEND_IMAGE:?ROLLBACK_BACKEND_IMAGE is required}
+    environment:
+      APP_ENV: rollback
+      APP_DEBUG: "false"
+      APP_KEY: ${ROLLBACK_APP_KEY:?ROLLBACK_APP_KEY is required}
+      APP_URL: http://backend:8080
+      FRONTEND_URL: http://backend:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carematch_rollback
+      DB_USERNAME: carematch
+      DB_PASSWORD: rollback_only
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: "false"
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      CARE_MATCH_DEMO_DATA: "true"
+      CARE_MATCH_DEMO_EMAIL: rollback.admin@example.test
+      CARE_MATCH_DEMO_PASSWORD: ${ROLLBACK_PASSWORD:?ROLLBACK_PASSWORD is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  rollback_postgres_data:

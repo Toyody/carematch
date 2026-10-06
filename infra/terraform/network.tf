@@ -21,11 +21,12 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private_data" {
-  count             = 2
-  vpc_id            = aws_vpc.main.id
-  availability_zone = var.availability_zones[count.index]
-  cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
-  tags              = { Name = "${local.name}-data-${count.index + 1}" }
+  count                   = 2
+  vpc_id                  = aws_vpc.main.id
+  availability_zone       = var.availability_zones[count.index]
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
+  map_public_ip_on_launch = false
+  tags                    = { Name = "${local.name}-data-${count.index + 1}" }
 }
 
 resource "aws_route_table" "public" {
@@ -118,4 +119,3 @@ resource "aws_security_group" "redis" {
     security_groups = [aws_security_group.ecs.id]
   }
 }
-
