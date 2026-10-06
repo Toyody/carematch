@@ -452,6 +452,24 @@ Candidate. Match explanations are presentation records keyed by an exact source
 fingerprint; reading recomputes the fingerprint and marks old text stale without
 changing deterministic rank.
 
+### Offline operational rehearsal boundary
+
+Pre-Phase 6B repository checks exercise the existing architecture without adding
+a production service or changing a business boundary. Logical backups use
+separate disposable PostgreSQL/PostGIS source and restore databases. Application
+rollback keeps the forward schema and runs the immediately previous production
+image against it. Candidate storage continues through the same focused
+Application port and Laravel/Flysystem S3 Infrastructure adapter, with only
+endpoint/path-style configuration changed for a disposable S3-compatible test.
+
+Controlled PostgreSQL, Redis and storage outages preserve the intentionally
+shallow `/up` liveness contract and verify safe failure plus recovery. Existing
+ElasticMQ integration remains the SQS retry/DLQ evidence, avoiding a duplicate
+queue architecture. Terraform native tests evaluate mocked plan invariants only;
+they neither contact AWS nor establish live service compatibility. Phase 6B/6C
+remain the authority for deployed HTTPS, IAM execution, RDS/S3/ECS, secrets and
+operational monitoring evidence.
+
 ## 9. API Conventions
 
 - Version tenant-owned endpoints under `/api/v1`.

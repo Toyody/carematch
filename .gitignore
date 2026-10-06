@@ -35,3 +35,8 @@ frontend/test-results/
 *.tfplan
 *.tfvars
 !*.tfvars.example
+
+# Disposable pre-deployment rehearsal artifacts
+*.dump
+*.backup
+.predeployment/

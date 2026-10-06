@@ -189,7 +189,7 @@ jobs:
           docker compose -f compose.yaml -f compose.async.yaml --profile async logs --no-color
 
   terraform:
-    name: Terraform format and validate
+    name: Terraform and deployment consistency
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -197,6 +197,22 @@ jobs:
 
       - name: Validate repository-side AWS definitions without a backend
         run: make test-terraform
+
+      - name: Validate deployment inventory, workflow and secret assumptions
+        run: make deployment-consistency
+
+  offline-rehearsal:
+    name: Local restore and private S3 integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Exercise PostgreSQL/PostGIS logical backup and restore
+        run: make test-backup-restore
+
+      - name: Exercise Candidate documents through an S3-compatible service
+        run: make test-storage
 
   e2e:
     name: Critical recruitment flow

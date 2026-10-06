@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Phase 6A, Phase 8 and Phase 9 prepare repository-side production definitions but do not claim a live deployment. `infra/terraform` has been formatted and validated only; it has not been planned against an account or applied. Phase 6B requires an authenticated AWS account, region, controlled DNS name and billable AWS resources. Phase 6C requires real HTTPS, queue, log, alarm, backup and restore verification.
+Phase 6A, Phase 8 and Phase 9 prepare repository-side production definitions but do not claim a live deployment. The offline pre-deployment rehearsal adds disposable local logical-restore, forward-schema rollback, S3-compatible storage, failure-recovery and mocked Terraform invariant evidence. `infra/terraform` has not been planned against an account or applied. Phase 6B requires an authenticated AWS account, region, controlled DNS name and billable AWS resources. Phase 6C requires real HTTPS, queue, log, alarm, backup and restore verification.
 
 No command in the normal container startup path migrates, seeds or resets the database automatically.
 
@@ -200,8 +200,12 @@ Validation is offline with respect to AWS resources:
 make test-terraform
 ```
 
-This runs Terraform 1.14.6 `fmt -check`, `init -backend=false` and `validate`.
-It does not run a credentialed plan or apply. The alarms cover ECS CPU/memory,
+This runs Terraform 1.14.6 `fmt -check`, `init -backend=false`, `validate` and
+native mocked-provider invariant tests. It does not run a credentialed plan or
+apply. `make predeploy-check` combines these tests with static deployment/
+secret consistency, OpenAPI linting and production-image validation. The
+heavier local drills are documented in
+[`predeployment-rehearsal.md`](predeployment-rehearsal.md). The alarms cover ECS CPU/memory,
 ALB-generated and backend-target 5xx, unhealthy backend targets, SQS backlog/age, non-empty DLQ, RDS CPU/free
 storage and Redis evictions. The dashboard groups ALB, ECS, queue/DLQ, RDS and
 Redis signals. An optional SNS action ARN avoids hard-coded personal delivery;
@@ -237,6 +241,11 @@ Minimum operational checks:
 ## Backup and restore
 
 Enable RDS encryption, automated backups with a documented retention period, final snapshots on deletion and deletion protection. Take a manual snapshot before high-risk schema work. Enable S3 versioning and encryption; lifecycle rules must not contradict the documented explicit-deletion policy.
+
+Before live provisioning, `make test-backup-restore` exercises a custom-format
+`pg_dump`/`pg_restore` between separate disposable PostgreSQL 18/PostGIS 3.6
+containers and compares non-sensitive relational/PostGIS baselines. This is
+useful local evidence but is not an RDS snapshot restore.
 
 Restore verification is a Phase 6C operator exercise:
 

@@ -150,6 +150,12 @@ variable "candidate_documents_force_destroy" {
   description = "Must remain false in production; explicit escape hatch for disposable validation environments."
 }
 
+variable "care_match_public_demo" {
+  type        = bool
+  default     = true
+  description = "Enable server-side public portfolio demo restrictions; keep true for the documented portfolio deployment."
+}
+
 variable "care_match_ai_enabled" {
   type        = bool
   default     = false

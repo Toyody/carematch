@@ -13,3 +13,4 @@ github_repository           = "example/carematch"
 github_oidc_provider_arn    = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
 backend_image               = "123456789012.dkr.ecr.ap-southeast-2.amazonaws.com/carematch-production-backend:bootstrap"
 frontend_image              = "123456789012.dkr.ecr.ap-southeast-2.amazonaws.com/carematch-production-frontend:bootstrap"
+care_match_public_demo      = true

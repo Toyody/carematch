@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "carematch-storage-rehearsal",
+      "credentials": [
+        {
+          "accessKey": "synthetic-storage-access",
+          "secretKey": "synthetic-storage-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+    }
+  ]
+}

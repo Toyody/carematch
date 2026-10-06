@@ -129,11 +129,17 @@ make test-production-images
 ```
 
 Run the disposable real Redis/SQS-compatible worker integration, repository-side
-Terraform validation, and short synthetic performance smoke separately:
+Terraform validation, offline production rehearsals, and short synthetic
+performance smoke separately:
 
 ```bash
 make test-async
 make test-terraform
+make predeploy-check
+make test-backup-restore
+make test-storage
+make test-rollback
+make test-failures
 make test-performance
 ```
 
@@ -183,7 +189,12 @@ make check       # Full validation suite
 make test-e2e    # Isolated Playwright stack and critical flow
 make test-async  # Redis + SQS producer/worker/retry/DLQ integration
 make test-ai-provider # Explicit, guarded synthetic OpenAI smoke (never part of CI)
-make test-terraform # Terraform fmt/init-without-backend/validate
+make test-terraform # Terraform fmt/init-without-backend/validate/native mock tests
+make predeploy-check # Fast zero-AWS deployment preflight
+make test-backup-restore # Disposable PostgreSQL/PostGIS logical restore
+make test-storage # Real local S3-compatible Candidate-document lifecycle
+make test-rollback # Previous app against the current forward schema
+make test-failures # PostgreSQL/Redis stop-and-recovery rehearsal
 make test-performance # Disposable synthetic k6 smoke
 make demo-seed   # Seed deterministic synthetic portfolio data
 ```
@@ -196,6 +207,7 @@ make demo-seed   # Seed deterministic synthetic portfolio data
 - [Database design](docs/database-design.md)
 - [Roadmap](docs/roadmap.md)
 - [Production deployment runbook](docs/deployment.md)
+- [Offline pre-deployment rehearsal](docs/predeployment-rehearsal.md)
 
 ## Repository structure
 
@@ -208,18 +220,22 @@ docs/               Product, architecture, database, diagrams, and screenshots
 compose.yaml        Local application stack
 compose.e2e.yaml    Isolated browser-test stack
 compose.async.yaml  Optional Redis/SQS worker integration overlay
+compose.storage.yaml Disposable S3-compatible storage integration overlay
 infra/terraform/    Unapplied production-target AWS definitions
 performance/        Synthetic k6 smoke workload
 ```
 
 ## Current status
 
-The local and CI-tested portfolio scope through Phase 9 is implemented. Phase 8
-means repository-side readiness: no Terraform was applied and no live AWS
-resources or CloudWatch alarms were verified. HTTPS/domain configuration, live
-managed infrastructure, deployed secrets, RDS/PostGIS compatibility, alarm
-delivery, backup/restore drills, live AI provider connectivity, and the live AI
-worker remain Phase 6B/6C work. AI is disabled by default and in the public demo.
+The local and CI-tested portfolio scope through Phase 9 is implemented. The
+offline pre-deployment rehearsal adds local PostgreSQL/PostGIS logical restore,
+forward-schema rollback, real S3-compatible storage, mocked Terraform invariant
+and controlled dependency-recovery evidence. No Terraform was applied and no
+live AWS resources or CloudWatch alarms were verified. HTTPS/domain
+configuration, live managed infrastructure, deployed secrets, real RDS/S3/ECS
+behaviour, alarm delivery, RDS snapshot restore, live AI provider connectivity,
+and the live AI worker remain Phase 6B/6C work. AI is disabled by default and in
+the public demo.
 
 Phase 9 uses the OpenAI Responses API behind a focused provider contract. A user
 explicitly requests parsing of an existing private PDF or DOCX; only a durable

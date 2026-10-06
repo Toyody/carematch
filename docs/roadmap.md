@@ -215,6 +215,19 @@ Exit criteria:
 - [x] Document AWS bootstrap, migration, rollback, backup and restore procedures
 - [x] Add production image validation to CI
 
+### Pre-Phase 6B — Offline production rehearsal
+
+- [x] Local PostgreSQL/PostGIS backup and restore drill
+- [x] Local forward-schema application rollback drill
+- [x] S3-compatible private Candidate-document integration
+- [x] Terraform architecture/security invariant tests
+- [x] Controlled dependency/failure recovery rehearsal
+- [x] Deployment preflight validation
+
+Completion of this section means repository-side and disposable local evidence
+only. It does not mean AWS was provisioned or that live RDS restore, S3 access,
+ECS rollback, CloudWatch, HTTPS, DNS or secret injection was verified.
+
 ### Phase 6B — AWS provisioning and HTTPS deployment
 
 - [ ] Confirm the controlled production hostname and AWS region
